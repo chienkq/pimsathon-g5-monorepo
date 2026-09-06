@@ -1,0 +1,44 @@
+{
+  "name": "pimsathon-g5-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pimsathon G5 monorepo",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --concurrency=18",
+    "start": "turbo run start",
+    "clean": "turbo run clean && rm -rf .turbo && rm -rf .next && rm -rf node_modules && rm -rf dist",
+    "fix": "turbo run fix",
+    "fix:format": "turbo run fix:format",
+    "fix:lint": "turbo run fix:lint",
+    "check": "turbo run check",
+    "check:lint": "turbo run check:lint",
+    "check:format": "turbo run check:format",
+    "check:types": "turbo run check:types",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@eslint/js": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-react-hooks": "catalog:",
+    "eslint-plugin-react-refresh": "catalog:",
+    "globals": "catalog:",
+    "husky": "catalog:",
+    "lint-staged": "catalog:",
+    "oxfmt": "catalog:",
+    "turbo": "catalog:",
+    "typescript-eslint": "catalog:"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,cjs,mjs,cts,mts,json,css,md}": [
+      "pnpm exec oxfmt --no-error-on-unmatched-pattern"
+    ],
+    "*.{js,jsx,ts,tsx,cjs,mjs,cts,mts}": [
+      "pnpm exec eslint --fix"
+    ]
+  },
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "packageManager": "pnpm@11.10.0"
+}

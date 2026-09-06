@@ -1,0 +1,59 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [".npmrc", ".oxfmtrc.json", "eslint.config.mjs"],
+  "globalEnv": ["NODE_ENV"],
+  "remoteCache": {
+    "enabled": false
+  },
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": ["dist/**", "build/**", ".next/**"]
+    },
+    "check": {
+      "dependsOn": ["check:format", "check:lint", "check:types"]
+    },
+    "check:format": {
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": []
+    },
+    "check:lint": {
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
+      "outputs": []
+    },
+    "check:types": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
+      "outputs": []
+    },
+    "clean": {
+      "cache": false
+    },
+    "dev": {
+      "cache": false,
+      "dependsOn": ["^build"],
+      "persistent": true
+    },
+    "fix": {
+      "cache": false,
+      "dependsOn": ["fix:format", "fix:lint"]
+    },
+    "fix:format": {
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": []
+    },
+    "fix:lint": {
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
+      "outputs": []
+    },
+    "start": {
+      "cache": false,
+      "persistent": true
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    }
+  }
+}

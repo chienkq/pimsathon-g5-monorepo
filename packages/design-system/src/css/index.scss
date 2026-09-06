@@ -1,0 +1,11 @@
+// Pimsathon Design System Styles
+// Entry point for all CSS
+
+// 1. Variables (CSS custom properties for theming)
+@import './variables';
+
+// 2. Global styles (resets, base styles)
+@import './global';
+
+// 3. Component styles are imported by components themselves
+// This allows for tree-shaking of unused components

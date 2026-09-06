@@ -1,0 +1,98 @@
+@import '../../css/variables';
+
+.node {
+  display: flex;
+  gap: var(--spacing-3);
+  align-items: center;
+  padding: var(--spacing-3) var(--spacing-4);
+  border-radius: var(--radius-md);
+  border: 2px solid var(--color-border-default);
+  background: var(--color-surface-default);
+  cursor: pointer;
+  transition: all 200ms ease;
+  min-width: 160px;
+
+  &:hover {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(79, 112, 223, 0.1);
+  }
+
+  &.selected {
+    border-color: var(--color-primary);
+    background: var(--color-primary-subtle);
+    box-shadow: 0 0 0 3px rgba(79, 112, 223, 0.15);
+  }
+}
+
+.icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  min-width: 0;
+  flex: 1;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-default);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Type variants
+.trigger {
+  border-left: 3px solid var(--color-semantic-green);
+}
+
+.action {
+  border-left: 3px solid var(--color-semantic-blue);
+}
+
+.condition {
+  border-left: 3px solid var(--color-semantic-yellow);
+}
+
+.branch {
+  border-left: 3px solid var(--color-semantic-purple);
+}
+
+.end {
+  border-left: 3px solid var(--color-semantic-red);
+}
+
+// Dark mode
+@media (prefers-color-scheme: dark) {
+  .node {
+    border-color: var(--color-border-default);
+    background: var(--color-surface-default);
+
+    &:hover {
+      box-shadow: 0 0 0 3px rgba(79, 112, 223, 0.2);
+    }
+
+    &.selected {
+      box-shadow: 0 0 0 3px rgba(79, 112, 223, 0.25);
+    }
+  }
+}
+
+:root[data-theme='dark'] {
+  .node {
+    border-color: var(--color-border-default);
+
+    &:hover {
+      box-shadow: 0 0 0 3px rgba(79, 112, 223, 0.2);
+    }
+
+    &.selected {
+      box-shadow: 0 0 0 3px rgba(79, 112, 223, 0.25);
+    }
+  }
+}

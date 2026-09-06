@@ -18,7 +18,12 @@ function toFlowNodes(nodes: WorkflowNodeDefinition[]): WorkflowFlowNode[] {
     id: node.id,
     type: "workflowNode",
     position: node.position,
-    data: { nodeType: node.type, label: node.name, parameters: node.parameters },
+    data: {
+      nodeType: node.type,
+      label: node.name,
+      parameters: node.parameters,
+      disabled: node.disabled,
+    },
   }));
 }
 
@@ -80,6 +85,7 @@ export function useWorkflowEditorState(workflowId: string) {
         name: node.data.label,
         position: node.position,
         parameters: node.data.parameters,
+        disabled: node.data.disabled,
       })),
       connections: edges.map((edge) => ({
         id: edge.id,
@@ -98,18 +104,92 @@ export function useWorkflowEditorState(workflowId: string) {
   );
 
   const addNode = useCallback(
-    (nodeTypeKey: string, position: { x: number; y: number }) => {
+    (nodeTypeKey: string, position?: { x: number; y: number }, connectFrom?: { nodeId: string; output: string }) => {
       const nodeType = getNodeType(nodeTypeKey);
       const parameters = Object.fromEntries(nodeType.parameters.map((field) => [field.key, field.default]));
       const id = crypto.randomUUID();
+
+      let resolvedPosition = position;
+      if (!resolvedPosition) {
+        const source = connectFrom ? nodes.find((n) => n.id === connectFrom.nodeId) : undefined;
+        resolvedPosition = source
+          ? { x: source.position.x + 220, y: source.position.y }
+          : { x: 240, y: 160 + nodes.length * 40 };
+      }
+
       const node: WorkflowFlowNode = {
         id,
         type: "workflowNode",
-        position,
+        position: resolvedPosition,
         data: { nodeType: nodeTypeKey, label: nodeType.displayName, parameters },
       };
       setNodes((current) => [...current, node]);
+
+      if (connectFrom) {
+        setEdges((current) =>
+          addEdge(
+            {
+              id: crypto.randomUUID(),
+              source: connectFrom.nodeId,
+              sourceHandle: connectFrom.output,
+              target: id,
+              targetHandle: "main",
+            },
+            current
+          )
+        );
+      }
+
       return id;
+    },
+    [nodes, setNodes, setEdges]
+  );
+
+  const deleteNode = useCallback(
+    (nodeId: string) => {
+      setNodes((current) => current.filter((node) => node.id !== nodeId));
+      setEdges((current) => current.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
+    },
+    [setNodes, setEdges]
+  );
+
+  const deleteEdge = useCallback(
+    (edgeId: string) => {
+      setEdges((current) => current.filter((edge) => edge.id !== edgeId));
+    },
+    [setEdges]
+  );
+
+  const toggleNodeDisabled = useCallback(
+    (nodeId: string) => {
+      setNodes((current) =>
+        current.map((node) =>
+          node.id === nodeId ? { ...node, data: { ...node.data, disabled: !node.data.disabled } } : node
+        )
+      );
+    },
+    [setNodes]
+  );
+
+  const duplicateSelectedNodes = useCallback(() => {
+    setNodes((current) => {
+      const selected = current.filter((node) => node.selected);
+      if (selected.length === 0) return current;
+      const idMap = new Map(selected.map((node) => [node.id, crypto.randomUUID()]));
+      const duplicates: WorkflowFlowNode[] = selected.map((node) => ({
+        ...node,
+        id: idMap.get(node.id)!,
+        selected: true,
+        position: { x: node.position.x + 32, y: node.position.y + 32 },
+        data: { ...node.data },
+      }));
+      return [...current.map((node) => ({ ...node, selected: false })), ...duplicates];
+    });
+  }, [setNodes]);
+
+  const selectAllNodes = useCallback(
+    (selected: boolean) => {
+      setNodes((current) => current.map((node) => ({ ...node, selected })));
     },
     [setNodes]
   );
@@ -171,6 +251,11 @@ export function useWorkflowEditorState(workflowId: string) {
     onEdgesChange,
     onConnect,
     addNode,
+    deleteNode,
+    deleteEdge,
+    toggleNodeDisabled,
+    duplicateSelectedNodes,
+    selectAllNodes,
     updateNodeParameter,
     name,
     setName,

@@ -1,0 +1,74 @@
+@import '../../css/variables';
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-5);
+  padding: var(--spacing-5);
+  background: var(--color-surface-default);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-default);
+}
+
+.header {
+  border-bottom: 1px solid var(--color-border-default);
+  padding-bottom: var(--spacing-4);
+
+  h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--color-text-default);
+  }
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.actions {
+  display: flex;
+  gap: var(--spacing-3);
+  justify-content: flex-end;
+  padding-top: var(--spacing-4);
+  border-top: 1px solid var(--color-border-default);
+}
+
+// Dark mode
+@media (prefers-color-scheme: dark) {
+  .editor {
+    background: var(--color-surface-default);
+    border-color: var(--color-border-default);
+  }
+
+  .header {
+    border-color: var(--color-border-default);
+  }
+
+  .actions {
+    border-color: var(--color-border-default);
+  }
+}
+
+:root[data-theme='dark'] {
+  .editor {
+    background: var(--color-surface-default);
+    border-color: var(--color-border-default);
+  }
+
+  .header {
+    border-color: var(--color-border-default);
+  }
+
+  .actions {
+    border-color: var(--color-border-default);
+  }
+}

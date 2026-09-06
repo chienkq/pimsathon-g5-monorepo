@@ -1,0 +1,148 @@
+@import '../../css/variables';
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4);
+  background: var(--color-surface-default);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  height: 56px;
+}
+
+.group {
+  display: flex;
+  gap: var(--spacing-2);
+  align-items: center;
+}
+
+.divider {
+  width: 1px;
+  height: 24px;
+  background: var(--color-border-default);
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-left: auto;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-semantic-gray);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+// Status variants
+.idle {
+  color: var(--color-text-muted);
+  background: var(--color-surface-subtle);
+
+  .indicator {
+    background: var(--color-text-muted);
+  }
+}
+
+.running {
+  color: var(--color-semantic-blue);
+  background: rgba(93, 130, 201, 0.1);
+
+  .indicator {
+    background: var(--color-semantic-blue);
+  }
+}
+
+.paused {
+  color: var(--color-semantic-yellow);
+  background: rgba(254, 188, 58, 0.1);
+
+  .indicator {
+    background: var(--color-semantic-yellow);
+    animation: none;
+  }
+}
+
+.error {
+  color: var(--color-semantic-red);
+  background: rgba(181, 124, 112, 0.1);
+
+  .indicator {
+    background: var(--color-semantic-red);
+    animation: none;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+// Dark mode
+@media (prefers-color-scheme: dark) {
+  .toolbar {
+    background: var(--color-surface-default);
+    border-color: var(--color-border-default);
+  }
+
+  .divider {
+    background: var(--color-border-default);
+  }
+
+  .idle {
+    background: var(--color-surface-subtle);
+  }
+
+  .running {
+    background: rgba(93, 130, 201, 0.15);
+  }
+
+  .paused {
+    background: rgba(254, 188, 58, 0.15);
+  }
+
+  .error {
+    background: rgba(181, 124, 112, 0.15);
+  }
+}
+
+:root[data-theme='dark'] {
+  .toolbar {
+    background: var(--color-surface-default);
+    border-color: var(--color-border-default);
+  }
+
+  .divider {
+    background: var(--color-border-default);
+  }
+
+  .idle {
+    background: var(--color-surface-subtle);
+  }
+
+  .running {
+    background: rgba(93, 130, 201, 0.15);
+  }
+
+  .paused {
+    background: rgba(254, 188, 58, 0.15);
+  }
+
+  .error {
+    background: rgba(181, 124, 112, 0.15);
+  }
+}

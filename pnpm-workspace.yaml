@@ -24,5 +24,6 @@ catalog:
   vitest: "5.0.0"
 
 allowBuilds:
+  '@parcel/watcher': true
   esbuild: true
   turbo: true

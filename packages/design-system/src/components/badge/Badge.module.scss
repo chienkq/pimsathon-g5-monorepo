@@ -1,0 +1,254 @@
+// Badge Component Styles
+// Workflow status indicators with semantic colors
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 4px 8px;
+  border-radius: 5px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+  background-color: #f2f4f8;
+  color: #8a94a5;
+
+  // Sizes
+  &--sm {
+    padding: 3px 6px;
+    font-size: 10px;
+    height: 22px;
+  }
+
+  &--md {
+    padding: 4px 8px;
+    font-size: var(--font-size-sm);
+    height: 26px;
+  }
+
+  &--lg {
+    padding: 6px 12px;
+    font-size: var(--font-size-base);
+    height: 32px;
+  }
+
+  // Status: Pending (Awaiting execution)
+  &--pending {
+    background-color: #f0f4f9;
+    color: #8893a5;
+
+    .badge__icon {
+      color: #8893a5;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme='light']) & {
+        background-color: rgba(136, 147, 165, 0.1);
+        color: #a8b5cc;
+
+        .badge__icon {
+          color: #a8b5cc;
+        }
+      }
+    }
+
+    :root[data-theme='dark'] & {
+      background-color: rgba(136, 147, 165, 0.1);
+      color: #a8b5cc;
+
+      .badge__icon {
+        color: #a8b5cc;
+      }
+    }
+  }
+
+  // Status: Running (Currently executing)
+  &--running {
+    background-color: #eef4ff;
+    color: #5d82c9;
+
+    .badge__icon {
+      color: #5d82c9;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme='light']) & {
+        background-color: rgba(93, 130, 201, 0.15);
+        color: #7fa3e8;
+
+        .badge__icon {
+          color: #7fa3e8;
+        }
+      }
+    }
+
+    :root[data-theme='dark'] & {
+      background-color: rgba(93, 130, 201, 0.15);
+      color: #7fa3e8;
+
+      .badge__icon {
+        color: #7fa3e8;
+      }
+    }
+  }
+
+  // Status: Success (Completed successfully)
+  &--success {
+    background-color: #edf7f2;
+    color: #559c7d;
+
+    .badge__icon {
+      color: #559c7d;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme='light']) & {
+        background-color: rgba(85, 156, 125, 0.15);
+        color: #73b99f;
+
+        .badge__icon {
+          color: #73b99f;
+        }
+      }
+    }
+
+    :root[data-theme='dark'] & {
+      background-color: rgba(85, 156, 125, 0.15);
+      color: #73b99f;
+
+      .badge__icon {
+        color: #73b99f;
+      }
+    }
+  }
+
+  // Status: Error (Failed execution)
+  &--error {
+    background-color: #fff5f3;
+    color: #b57c70;
+
+    .badge__icon {
+      color: #b57c70;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme='light']) & {
+        background-color: rgba(181, 124, 112, 0.15);
+        color: #d9a098;
+
+        .badge__icon {
+          color: #d9a098;
+        }
+      }
+    }
+
+    :root[data-theme='dark'] & {
+      background-color: rgba(181, 124, 112, 0.15);
+      color: #d9a098;
+
+      .badge__icon {
+        color: #d9a098;
+      }
+    }
+  }
+
+  // Status: Cancelled (Manually stopped)
+  &--cancelled {
+    background-color: #f4f0f1;
+    color: #a28e92;
+
+    .badge__icon {
+      color: #a28e92;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme='light']) & {
+        background-color: rgba(162, 142, 146, 0.15);
+        color: #c4aaaf;
+
+        .badge__icon {
+          color: #c4aaaf;
+        }
+      }
+    }
+
+    :root[data-theme='dark'] & {
+      background-color: rgba(162, 142, 146, 0.15);
+      color: #c4aaaf;
+
+      .badge__icon {
+        color: #c4aaaf;
+      }
+    }
+  }
+
+  // Status: Skipped (Not executed)
+  &--skipped {
+    background-color: #f3eff9;
+    color: #9a83b6;
+
+    .badge__icon {
+      color: #9a83b6;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme='light']) & {
+        background-color: rgba(154, 131, 182, 0.15);
+        color: #b9a3d4;
+
+        .badge__icon {
+          color: #b9a3d4;
+        }
+      }
+    }
+
+    :root[data-theme='dark'] & {
+      background-color: rgba(154, 131, 182, 0.15);
+      color: #b9a3d4;
+
+      .badge__icon {
+        color: #b9a3d4;
+      }
+    }
+  }
+
+  // Animation for running status
+  &--animated {
+    .badge__icon {
+      animation: spin 2s linear infinite;
+    }
+  }
+}
+
+// Icon element
+.badge__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1em;
+  height: 1em;
+
+  svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+}
+
+// Text content
+.badge__text {
+  display: inline-flex;
+  align-items: center;
+}
+
+// Spin animation for running icon
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

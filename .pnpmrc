@@ -1,0 +1,2 @@
+# Allow @parcel/watcher to build
+build-dependencies-file=

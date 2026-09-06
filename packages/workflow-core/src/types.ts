@@ -52,6 +52,8 @@ export interface WorkflowNodeDefinition {
   name: string;
   position: { x: number; y: number };
   parameters: Record<string, unknown>;
+  /** Disabled nodes are skipped during execution, as if they weren't in the graph. */
+  disabled?: boolean;
 }
 
 export interface WorkflowConnection {

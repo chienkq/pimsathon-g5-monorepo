@@ -7,7 +7,25 @@ export interface WorkflowNodeData extends Record<string, unknown> {
   parameters: Record<string, unknown>;
   status?: NodeRunStatus | "running";
   result?: NodeExecutionResult;
+  disabled?: boolean;
+  /** Output branch names that already have an outgoing connection (injected by the canvas). */
+  connectedOutputs?: string[];
+  /** Injected by the canvas: open the add-node panel pre-wired to connect from this output. */
+  onAddFromOutput?: (output: string) => void;
+  /** Injected by the canvas: node hover-toolbar actions. */
+  onDelete?: () => void;
+  onToggleDisabled?: () => void;
+}
+
+export interface WorkflowEdgeData extends Record<string, unknown> {
+  onDelete?: (edgeId: string) => void;
+}
+
+export interface AddNodeRequest {
+  mode: "trigger" | "node";
+  sourceNodeId?: string;
+  sourceOutput?: string;
 }
 
 export type WorkflowFlowNode = Node<WorkflowNodeData, "workflowNode">;
-export type WorkflowFlowEdge = Edge;
+export type WorkflowFlowEdge = Edge<WorkflowEdgeData, "workflowEdge">;

@@ -46,7 +46,7 @@ export async function executeWorkflow(
     const node = nodesById.get(nodeId);
     if (!node) continue;
 
-    if (skipped.has(nodeId)) {
+    if (skipped.has(nodeId) || node.disabled) {
       const now = new Date().toISOString();
       nodeResults[nodeId] = { status: "skipped", startedAt: now, finishedAt: now };
       for (const conn of outgoingBySource.get(nodeId) ?? []) skipped.add(conn.target);

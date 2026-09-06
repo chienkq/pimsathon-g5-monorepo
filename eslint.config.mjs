@@ -33,4 +33,12 @@ export default defineConfig([
       "react-refresh/only-export-components": "off",
     },
   },
+  {
+    // Storybook's `render` story field is a plain function, not a component, but it
+    // idiomatically calls hooks to demo stateful stories.
+    files: ["**/*.stories.{ts,tsx}"],
+    rules: {
+      "react-hooks/rules-of-hooks": "off",
+    },
+  },
 ]);

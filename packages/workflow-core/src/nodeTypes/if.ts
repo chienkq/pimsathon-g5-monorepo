@@ -1,16 +1,23 @@
 import type { NodeExecutionData, NodeTypeDefinition } from "../types.js";
 import { evaluateCondition, getByPath } from "../utils.js";
 
-export const ifConditionNodeType: NodeTypeDefinition = {
-  type: "ifCondition",
-  displayName: "IF",
+export const ifNodeType: NodeTypeDefinition = {
+  type: "if",
+  displayName: "If",
   description: "Routes each item to the true or false branch based on a condition.",
-  group: "logic",
+  group: "flow",
   color: "#9b2226",
   hasInput: true,
   outputs: ["true", "false"],
   parameters: [
-    { key: "field", label: "Field (dot path)", type: "string", default: "", placeholder: "data.status" },
+    {
+      key: "field",
+      label: "Field (dot path)",
+      type: "string",
+      default: "",
+      placeholder: "data.status",
+      required: true,
+    },
     {
       key: "operator",
       label: "Operator",

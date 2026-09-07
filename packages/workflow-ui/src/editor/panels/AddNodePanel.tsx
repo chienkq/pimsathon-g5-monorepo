@@ -4,13 +4,17 @@ import { getNodeIcon } from "../nodes/nodeIcons.js";
 import type { AddNodeRequest } from "../types.js";
 
 const GROUP_LABEL: Record<NodeGroup, string> = {
-  trigger: "Triggers",
-  action: "Actions",
-  logic: "Logic",
+  ai: "AI Nodes",
+  app: "Action in Apps",
+  flow: "Flow",
+  core: "Core",
+  humanReview: "Human Review",
 };
 
+const GROUP_ORDER: NodeGroup[] = ["ai", "app", "flow", "core", "humanReview"];
+
 const TRIGGER_HELP: Record<string, string> = {
-  manualTrigger: "Runs the flow on clicking a button in n8n. Good for getting started quickly",
+  webhook: "Runs the flow when this URL is called externally. Good for getting started quickly",
 };
 
 export interface AddNodePanelProps {
@@ -23,15 +27,16 @@ export function AddNodePanel({ request, onClose, onSelect }: AddNodePanelProps) 
   const [query, setQuery] = useState("");
   const allNodeTypes = listNodeTypes();
 
-  const groups: NodeGroup[] = request?.mode === "trigger" ? ["trigger"] : ["action", "logic", "trigger"];
+  const groups = GROUP_ORDER;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return allNodeTypes;
-    return allNodeTypes.filter(
+    const base = request?.mode === "trigger" ? allNodeTypes.filter((nodeType) => nodeType.isTrigger) : allNodeTypes;
+    if (!q) return base;
+    return base.filter(
       (nodeType) => nodeType.displayName.toLowerCase().includes(q) || nodeType.description.toLowerCase().includes(q)
     );
-  }, [allNodeTypes, query]);
+  }, [allNodeTypes, query, request?.mode]);
 
   if (!request) return null;
 

@@ -18,9 +18,12 @@ export interface ParameterField {
   placeholder?: string;
   helpText?: string;
   options?: ParameterFieldOption[];
+  /** Config-time validation: node shows an "issues" warning while this field is empty. */
+  required?: boolean;
 }
 
-export type NodeGroup = "trigger" | "action" | "logic";
+/** n8n-style node-creator categories (matches n8n's real grouping, not its literal category labels). */
+export type NodeGroup = "ai" | "app" | "flow" | "core" | "humanReview";
 
 export interface NodeExecuteContext {
   parameters: Record<string, unknown>;
@@ -40,6 +43,8 @@ export interface NodeTypeDefinition {
   /** Hex color used for the node's header/border in the canvas. */
   color: string;
   hasInput: boolean;
+  /** Renders with the pill-shaped trigger silhouette and is offered in "what starts this workflow" mode. */
+  isTrigger?: boolean;
   /** Branch names, in handle display order. */
   outputs: string[];
   parameters: ParameterField[];

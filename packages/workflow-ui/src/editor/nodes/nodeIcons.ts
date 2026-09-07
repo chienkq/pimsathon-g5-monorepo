@@ -1,11 +1,29 @@
 const ICONS: Record<string, string> = {
-  manualTrigger: "▶",
-  setFields: "✎",
-  httpRequest: "◎",
-  ifCondition: "⑂",
-  code: "◇",
+  // AI
+  sendMessageToAiAgent: "✦",
+  // Action in Apps
+  metisSoftware: "◆",
+  sonarQube: "◈",
+  // Flow
+  if: "⑂",
+  loop: "↻",
   merge: "⑃",
-  noOp: "•",
+  switch: "⇶",
+  wait: "◷",
+  // Core
+  code: "◇",
+  httpRequest: "◎",
+  webhook: "⬡",
+  ftp: "⇅",
+  // Human Review
+  chat: "◐",
+  discord: "◒",
+  gmail: "✉",
+  outlook: "▤",
+  teams: "▦",
+  email: "✆",
+  slack: "▩",
+  telegram: "➤",
 };
 
 export function getNodeIcon(type: string, fallback: string): string {

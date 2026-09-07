@@ -1,5 +1,7 @@
+import { getNodeType, validateNode } from "@chienkq/workflow-core";
 import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
 import { useEffect, useMemo, useState } from "react";
+import { CANVAS_DEFAULT_ZOOM, CANVAS_FIT_VIEW_OPTIONS } from "./canvasConstants.js";
 import { NodeDetailModal } from "./ndv/NodeDetailModal.js";
 import { AddNodePanel } from "./panels/AddNodePanel.js";
 import type { AddNodeRequest, WorkflowFlowEdge, WorkflowFlowNode } from "./types.js";
@@ -52,6 +54,7 @@ function WorkflowEditorViewInner({ workflowId, onBack }: WorkflowEditorViewProps
             setAddRequest({ mode: "node", sourceNodeId: node.id, sourceOutput: output }),
           onDelete: () => editor.deleteNode(node.id),
           onToggleDisabled: () => editor.toggleNodeDisabled(node.id),
+          issues: validateNode(getNodeType(node.data.nodeType), node.data.parameters),
         },
       })),
     [editor.nodes, connectedOutputsByNode, editor.deleteNode, editor.toggleNodeDisabled]
@@ -98,10 +101,10 @@ function WorkflowEditorViewInner({ workflowId, onBack }: WorkflowEditorViewProps
         void reactFlow.zoomOut();
       } else if (event.key === "0") {
         event.preventDefault();
-        void reactFlow.zoomTo(1);
+        void reactFlow.zoomTo(CANVAS_DEFAULT_ZOOM);
       } else if (event.key === "1") {
         event.preventDefault();
-        void reactFlow.fitView();
+        void reactFlow.fitView(CANVAS_FIT_VIEW_OPTIONS);
       }
     };
 

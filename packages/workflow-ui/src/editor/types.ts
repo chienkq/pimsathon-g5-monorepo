@@ -8,6 +8,8 @@ export interface WorkflowNodeData extends Record<string, unknown> {
   status?: NodeRunStatus | "running";
   result?: NodeExecutionResult;
   disabled?: boolean;
+  /** Config-time validation issues (missing required params, invalid JSON) — injected by the canvas. */
+  issues?: string[];
   /** Output branch names that already have an outgoing connection (injected by the canvas). */
   connectedOutputs?: string[];
   /** Injected by the canvas: open the add-node panel pre-wired to connect from this output. */

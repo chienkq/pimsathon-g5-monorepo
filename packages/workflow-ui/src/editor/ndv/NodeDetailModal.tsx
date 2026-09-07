@@ -1,4 +1,4 @@
-import { getNodeType } from "@chienkq/workflow-core";
+import { getNodeType, validateNode } from "@chienkq/workflow-core";
 import { useEffect } from "react";
 import { getNodeIcon } from "../nodes/nodeIcons.js";
 import { ParameterField } from "../panels/ParameterField.js";
@@ -53,6 +53,7 @@ function DataColumn({
 
 export function NodeDetailModal({ node, nodes, edges, onChangeParameter, onClose }: NodeDetailModalProps) {
   const nodeType = getNodeType(node.data.nodeType);
+  const issues = validateNode(nodeType, node.data.parameters);
   const inputItems = getNodeInputData(node.id, nodes, edges).map((item) => item.json);
   const outputBranches = node.data.result?.branches ?? {};
   const outputItems = Object.values(outputBranches)
@@ -96,6 +97,13 @@ export function NodeDetailModal({ node, nodes, edges, onChangeParameter, onClose
               <span>PARAMETERS</span>
             </div>
             <div className="wf-ndv-column__body">
+              {issues.length > 0 && (
+                <ul className="wf-ndv-issues">
+                  {issues.map((issue) => (
+                    <li key={issue}>{issue}</li>
+                  ))}
+                </ul>
+              )}
               {nodeType.parameters.length === 0 ? (
                 <p className="wf-muted">This node has no parameters.</p>
               ) : (

@@ -5,12 +5,19 @@ export const httpRequestNodeType: NodeTypeDefinition = {
   type: "httpRequest",
   displayName: "HTTP Request",
   description: "Calls an HTTP endpoint and returns the response.",
-  group: "action",
+  group: "core",
   color: "#005f73",
   hasInput: true,
   outputs: ["main"],
   parameters: [
-    { key: "url", label: "URL", type: "string", default: "", placeholder: "https://api.example.com/resource" },
+    {
+      key: "url",
+      label: "URL",
+      type: "string",
+      default: "",
+      placeholder: "https://api.example.com/resource",
+      required: true,
+    },
     {
       key: "method",
       label: "Method",

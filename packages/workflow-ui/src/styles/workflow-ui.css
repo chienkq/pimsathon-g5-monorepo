@@ -28,11 +28,11 @@
   --wf-radius-xs: 4px;
   --wf-radius-sm: 6px;
   --wf-radius: 8px;
-  --wf-radius-xl: 12px;
+  --wf-radius-xl: 8px;
 
   /* n8n canvas node geometry (nodeViewUtils.ts DEFAULT_NODE_SIZE=[96,96], trigger radius=36) */
-  --wf-node-size: 96px;
-  --wf-node-icon-size: 48px;
+  --wf-node-size: 50px;
+  --wf-node-icon-size: 36px;
   --wf-trigger-radius: 36px;
 
   height: 100%;
@@ -715,6 +715,21 @@
   margin-bottom: 10px;
 }
 
+.wf-ndv-issues {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  list-style: none;
+  background: rgb(232 168 56 / 10%);
+  border: 1px solid var(--wf-color-warning);
+  border-radius: var(--wf-radius-sm);
+  color: var(--wf-color-warning);
+  font-size: 0.82rem;
+}
+
+.wf-ndv-issues li + li {
+  margin-top: 4px;
+}
+
 /* ---- Node output "+" connector ---- */
 .wf-node__add-output {
   position: absolute;
@@ -1017,6 +1032,23 @@
   pointer-events: none;
 }
 
+.wf-node__issue {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--wf-color-bg);
+  border: 1.5px solid var(--wf-color-warning);
+  color: var(--wf-color-warning);
+  font-size: 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+
 .wf-node__disabled-tag {
   color: var(--wf-color-muted);
   font-weight: 400;
@@ -1157,6 +1189,7 @@
   height: 10px !important;
   background: var(--wf-color-bg) !important;
   border: 2px solid var(--wf-color-muted) !important;
+  z-index: 100 !important;
 }
 
 .wf-handle:hover {

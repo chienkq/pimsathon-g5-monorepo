@@ -20,12 +20,12 @@ function workflow(overrides: Partial<WorkflowDefinition>): WorkflowDefinition {
 }
 
 describe("executeWorkflow", () => {
-  it("runs a trigger into a Set Fields node", async () => {
-    const trigger = node("trigger", "manualTrigger");
-    const setFields = node("set", "setFields", { fields: '{"greeting":"hi"}' });
+  it("runs a trigger into a Code node", async () => {
+    const trigger = node("trigger", "webhook");
+    const code = node("set", "code", { code: 'return [{ greeting: "hi" }];' });
     const result = await executeWorkflow(
       workflow({
-        nodes: [trigger, setFields],
+        nodes: [trigger, code],
         connections: [{ id: "c1", source: "trigger", target: "set" }],
       })
     );
@@ -34,16 +34,16 @@ describe("executeWorkflow", () => {
     expect(result.nodeResults.set.branches?.main).toEqual([{ json: { greeting: "hi" } }]);
   });
 
-  it("routes items to the true/false branch of an IF node", async () => {
-    const trigger = node("trigger", "manualTrigger");
-    const setFields = node("set", "setFields", { fields: '{"status":"ok"}' });
-    const ifNode = node("if", "ifCondition", { field: "status", operator: "equals", value: "ok" });
-    const onTrue = node("onTrue", "noOp");
-    const onFalse = node("onFalse", "noOp");
+  it("routes items to the true/false branch of an If node", async () => {
+    const trigger = node("trigger", "webhook");
+    const code = node("set", "code", { code: 'return [{ status: "ok" }];' });
+    const ifNode = node("if", "if", { field: "status", operator: "equals", value: "ok" });
+    const onTrue = node("onTrue", "merge");
+    const onFalse = node("onFalse", "merge");
 
     const result = await executeWorkflow(
       workflow({
-        nodes: [trigger, setFields, ifNode, onTrue, onFalse],
+        nodes: [trigger, code, ifNode, onTrue, onFalse],
         connections: [
           { id: "c1", source: "trigger", target: "set" },
           { id: "c2", source: "set", target: "if" },
@@ -58,9 +58,9 @@ describe("executeWorkflow", () => {
   });
 
   it("skips downstream nodes when a node errors", async () => {
-    const trigger = node("trigger", "manualTrigger");
+    const trigger = node("trigger", "webhook");
     const httpNode = node("http", "httpRequest", { url: "" }); // missing URL throws
-    const downstream = node("downstream", "noOp");
+    const downstream = node("downstream", "merge");
 
     const result = await executeWorkflow(
       workflow({
@@ -78,8 +78,8 @@ describe("executeWorkflow", () => {
   });
 
   it("throws a clear error for cyclic workflows", async () => {
-    const a = node("a", "noOp");
-    const b = node("b", "noOp");
+    const a = node("a", "merge");
+    const b = node("b", "merge");
     await expect(
       executeWorkflow(
         workflow({

@@ -13,7 +13,7 @@ const STATUS_LABEL: Record<string, string> = {
 export function GenericNode({ data, selected }: NodeProps<WorkflowFlowNode>) {
   const nodeType = getNodeType(data.nodeType);
   const statusClass = data.status ? `wf-node--${data.status}` : "";
-  const isTrigger = nodeType.group === "trigger";
+  const isTrigger = nodeType.isTrigger === true;
 
   return (
     <div className={`wf-node-wrapper ${selected ? "wf-node-wrapper--selected" : ""}`}>
@@ -57,6 +57,11 @@ export function GenericNode({ data, selected }: NodeProps<WorkflowFlowNode>) {
         <span className="wf-node__icon">{getNodeIcon(nodeType.type, nodeType.displayName)}</span>
         {data.status === "running" && <span className="wf-node__spinner" />}
         {data.disabled && <span className="wf-node__disabled-strike" />}
+        {!data.disabled && data.issues && data.issues.length > 0 && (
+          <span className="wf-node__issue" title={data.issues.join("\n")}>
+            ▲
+          </span>
+        )}
       </div>
 
       <div className="wf-node__label">

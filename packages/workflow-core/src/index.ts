@@ -3,6 +3,7 @@ export * from "./utils.js";
 export * from "./nodeTypes/index.js";
 export * from "./engine/executeWorkflow.js";
 export * from "./engine/topologicalSort.js";
+export * from "./engine/validateNode.js";
 export * from "./repository/WorkflowRepository.js";
 export * from "./repository/InMemoryWorkflowRepository.js";
 export * from "./repository/LocalStorageWorkflowRepository.js";

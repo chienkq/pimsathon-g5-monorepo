@@ -6,7 +6,7 @@ export const codeNodeType: NodeTypeDefinition = {
   type: "code",
   displayName: "Code",
   description: "Runs custom JavaScript against the input items.",
-  group: "action",
+  group: "core",
   color: "#5a189a",
   hasInput: true,
   outputs: ["main"],
@@ -17,6 +17,7 @@ export const codeNodeType: NodeTypeDefinition = {
       type: "code",
       default: DEFAULT_CODE,
       helpText: "Return an array of items (or plain objects, auto-wrapped as { json }).",
+      required: true,
     },
   ],
   async execute({ parameters, input }) {

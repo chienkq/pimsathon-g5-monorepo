@@ -8,6 +8,7 @@ import {
   type OnEdgesChange,
   type OnNodesChange,
 } from "@xyflow/react";
+import { CANVAS_DEFAULT_ZOOM, CANVAS_FIT_VIEW_OPTIONS } from "./canvasConstants.js";
 import { CanvasEdge } from "./edges/CanvasEdge.js";
 import { GenericNode } from "./nodes/GenericNode.js";
 import type { AddNodeRequest, WorkflowFlowEdge, WorkflowFlowNode } from "./types.js";
@@ -62,9 +63,11 @@ export function WorkflowCanvas({
         selectionOnDrag
         panOnDrag={[1, 2]}
         fitView
+        fitViewOptions={CANVAS_FIT_VIEW_OPTIONS}
+        defaultViewport={{ x: 0, y: 0, zoom: CANVAS_DEFAULT_ZOOM }}
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1.5} color="#d7d9e0" />
-        <Controls showInteractive={false} />
+        <Controls showInteractive={false} fitViewOptions={CANVAS_FIT_VIEW_OPTIONS} />
       </ReactFlow>
 
       <div className="wf-canvas-toolbar">

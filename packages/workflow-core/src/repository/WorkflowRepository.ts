@@ -23,8 +23,8 @@ export function createEmptyWorkflow(name: string): WorkflowDefinition {
     nodes: [
       {
         id: crypto.randomUUID(),
-        type: "manualTrigger",
-        name: "Manual Trigger",
+        type: "webhook",
+        name: "Webhook",
         position: { x: 100, y: 150 },
         parameters: {},
       },

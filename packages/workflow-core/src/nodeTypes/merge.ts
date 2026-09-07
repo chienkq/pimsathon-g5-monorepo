@@ -4,7 +4,7 @@ export const mergeNodeType: NodeTypeDefinition = {
   type: "merge",
   displayName: "Merge",
   description: "Joins items from multiple incoming connections into one list.",
-  group: "logic",
+  group: "flow",
   color: "#495057",
   hasInput: true,
   outputs: ["main"],

@@ -1,6 +1,6 @@
 import { listNodeTypes, type NodeGroup } from "@chienkq/workflow-core";
 import { useMemo, useState } from "react";
-import { getNodeIcon } from "../nodes/nodeIcons.js";
+import { SvgNodeIcon } from "../nodes/SvgNodeIcon.js";
 import type { AddNodeRequest } from "../types.js";
 
 const GROUP_LABEL: Record<NodeGroup, string> = {
@@ -81,8 +81,12 @@ export function AddNodePanel({ request, onClose, onSelect }: AddNodePanelProps) 
                     className="wf-add-node-row"
                     onClick={() => onSelect(nodeType.type)}
                   >
-                    <span className="wf-add-node-row__icon" style={{ background: nodeType.color }}>
-                      {getNodeIcon(nodeType.type, nodeType.displayName)}
+                    <span className="wf-add-node-row__icon" style={{ ["--wf-icon-color" as string]: nodeType.color }}>
+                      <SvgNodeIcon
+                        nodeType={nodeType.type}
+                        displayName={nodeType.displayName}
+                        className="wf-add-node-row__icon-glyph"
+                      />
                     </span>
                     <span className="wf-add-node-row__text">
                       <span className="wf-add-node-row__name">{nodeType.displayName}</span>

@@ -24,6 +24,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "dev": "tsc --watch --preserveWatchOutput",
     "clean": "rm -rf dist .turbo",
     "prepublishOnly": "pnpm run build",
     "test": "vitest run",

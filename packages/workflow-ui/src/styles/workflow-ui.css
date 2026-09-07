@@ -32,7 +32,7 @@
 
   /* n8n canvas node geometry (nodeViewUtils.ts DEFAULT_NODE_SIZE=[96,96], trigger radius=36) */
   --wf-node-size: 50px;
-  --wf-node-icon-size: 36px;
+  --wf-node-icon-size: 24px;
   --wf-trigger-radius: 36px;
 
   height: 100%;
@@ -564,8 +564,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  background: var(--wf-color-bg);
+  border: 1px solid var(--wf-color-border);
+  color: var(--wf-icon-color, var(--wf-color-primary));
   font-size: 1rem;
+}
+
+.wf-add-node-row__icon-glyph svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
 }
 
 .wf-add-node-row__text {
@@ -627,8 +635,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  background: var(--wf-color-bg);
+  border: 1px solid var(--wf-color-border);
+  color: var(--wf-icon-color, var(--wf-color-primary));
   font-size: 1.1rem;
+}
+
+.wf-ndv__icon-glyph svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
 }
 
 .wf-ndv__heading {
@@ -939,22 +955,9 @@
     border-color 120ms ease;
 }
 
-.wf-node::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: var(--wf-node-color, var(--wf-color-primary));
-  opacity: 0.1;
-}
-
 /* n8n trigger shape: heavily rounded on the incoming (left) side, normal radius on the right */
 .wf-node--trigger {
   border-radius: var(--wf-trigger-radius) var(--wf-radius-xl) var(--wf-radius-xl) var(--wf-trigger-radius);
-}
-
-.wf-node--trigger::before {
-  border-radius: inherit;
 }
 
 .wf-node__icon {
@@ -963,6 +966,15 @@
   color: var(--wf-node-color, var(--wf-color-primary));
   font-weight: 700;
   line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wf-node__icon svg {
+  width: var(--wf-node-icon-size);
+  height: var(--wf-node-icon-size);
+  fill: currentColor;
 }
 
 /* Hover toolbar: revealed above the node, mirrors n8n's CanvasNodeToolbar */

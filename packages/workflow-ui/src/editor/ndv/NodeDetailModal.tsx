@@ -1,6 +1,6 @@
 import { getNodeType, validateNode } from "@chienkq/workflow-core";
 import { useEffect } from "react";
-import { getNodeIcon } from "../nodes/nodeIcons.js";
+import { SvgNodeIcon } from "../nodes/SvgNodeIcon.js";
 import { ParameterField } from "../panels/ParameterField.js";
 import type { WorkflowFlowEdge, WorkflowFlowNode } from "../types.js";
 import { getNodeInputData } from "./getNodeInputData.js";
@@ -72,8 +72,8 @@ export function NodeDetailModal({ node, nodes, edges, onChangeParameter, onClose
     <div className="wf-ndv-backdrop" onClick={onClose}>
       <div className="wf-ndv" role="dialog" aria-label={node.data.label} onClick={(event) => event.stopPropagation()}>
         <header className="wf-ndv__header">
-          <span className="wf-ndv__icon" style={{ background: nodeType.color }}>
-            {getNodeIcon(nodeType.type, nodeType.displayName)}
+          <span className="wf-ndv__icon" style={{ ["--wf-icon-color" as string]: nodeType.color }}>
+            <SvgNodeIcon nodeType={nodeType.type} displayName={nodeType.displayName} className="wf-ndv__icon-glyph" />
           </span>
           <div className="wf-ndv__heading">
             <h2>{node.data.label}</h2>

@@ -1,7 +1,7 @@
 import { getNodeType } from "@chienkq/workflow-core";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import type { WorkflowFlowNode } from "../types.js";
-import { getNodeIcon } from "./nodeIcons.js";
+import { SvgNodeIcon } from "./SvgNodeIcon.js";
 
 const STATUS_LABEL: Record<string, string> = {
   running: "Running…",
@@ -54,7 +54,7 @@ export function GenericNode({ data, selected }: NodeProps<WorkflowFlowNode>) {
         className={`wf-node ${isTrigger ? "wf-node--trigger" : ""} ${statusClass} ${data.disabled ? "wf-node--disabled" : ""}`}
         style={{ ["--wf-node-color" as string]: nodeType.color }}
       >
-        <span className="wf-node__icon">{getNodeIcon(nodeType.type, nodeType.displayName)}</span>
+        <SvgNodeIcon nodeType={nodeType.type} displayName={nodeType.displayName} />
         {data.status === "running" && <span className="wf-node__spinner" />}
         {data.disabled && <span className="wf-node__disabled-strike" />}
         {!data.disabled && data.issues && data.issues.length > 0 && (

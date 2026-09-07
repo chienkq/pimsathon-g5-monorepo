@@ -26,7 +26,8 @@
     "registry": "https://npm.pkg.github.com"
   },
   "scripts": {
-    "build": "tsc && mkdir -p dist/styles && cp src/styles/workflow-ui.css dist/styles/workflow-ui.css",
+    "build": "tsc && mkdir -p dist/styles && cp src/styles/workflow-ui.css dist/styles/workflow-ui.css && mkdir -p dist/assets/icons && (cp src/assets/icons/*.svg dist/assets/icons/ 2>/dev/null || true)",
+    "dev": "node scripts/watch-assets.mjs & tsc --watch --preserveWatchOutput",
     "clean": "rm -rf dist .turbo",
     "prepublishOnly": "pnpm run build",
     "check:format": "oxfmt --check . '!dist/**'",

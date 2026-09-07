@@ -1,21 +1,20 @@
-const ICONS: Record<string, string> = {
-  // AI
+// Text fallback shown until/unless a matching SVG is found at /icons/{nodeType}.svg
+// (see SvgNodeIcon.tsx, and apps/admin-ui/public/icons/ for the actual files)
+type IconMap = Record<string, string>;
+
+const FALLBACK_ICONS: IconMap = {
   sendMessageToAiAgent: "✦",
-  // Action in Apps
   metisSoftware: "◆",
   sonarQube: "◈",
-  // Flow
   if: "⑂",
   loop: "↻",
   merge: "⑃",
   switch: "⇶",
   wait: "◷",
-  // Core
   code: "◇",
   httpRequest: "◎",
   webhook: "⬡",
   ftp: "⇅",
-  // Human Review
   chat: "◐",
   discord: "◒",
   gmail: "✉",
@@ -27,5 +26,5 @@ const ICONS: Record<string, string> = {
 };
 
 export function getNodeIcon(type: string, fallback: string): string {
-  return ICONS[type] ?? fallback.charAt(0).toUpperCase();
+  return FALLBACK_ICONS[type] ?? fallback.charAt(0).toUpperCase();
 }

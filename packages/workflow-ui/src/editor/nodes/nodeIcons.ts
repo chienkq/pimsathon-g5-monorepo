@@ -23,6 +23,16 @@ const FALLBACK_ICONS: IconMap = {
   email: "✆",
   slack: "▩",
   telegram: "➤",
+  jira: "◈",
+  git: "⌥",
+  gitCacheUpsert: "⇥",
+  factUpsert: "⇥",
+  factQuery: "⇤",
+  raiseAlert: "▲",
+  workItem: "☐",
+  planningGroup: "◫",
+  aggregate: "Σ",
+  publishWidget: "▥",
 };
 
 export function getNodeIcon(type: string, fallback: string): string {

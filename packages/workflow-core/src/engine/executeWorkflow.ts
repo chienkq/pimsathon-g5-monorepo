@@ -23,6 +23,8 @@ export interface WorkflowExecutionResult {
 export interface ExecuteWorkflowOptions {
   onNodeStart?: (nodeId: string) => void;
   onNodeFinish?: (nodeId: string, result: NodeExecutionResult) => void;
+  /** Host-injected integrations, forwarded unchanged to every node's `execute({ services })`. */
+  services?: Record<string, unknown>;
 }
 
 export async function executeWorkflow(
@@ -67,7 +69,7 @@ export async function executeWorkflow(
       // Nodes must run in topological order — a later node's input depends on an earlier node's
       // output — so this cannot be parallelized with Promise.all.
       // oxlint-disable-next-line no-await-in-loop
-      const result = await nodeType.execute({ parameters: node.parameters, input });
+      const result = await nodeType.execute({ parameters: node.parameters, input, services: options.services });
       const nodeResult: NodeExecutionResult = {
         status: "success",
         branches: result.branches,

@@ -23,11 +23,13 @@ export interface ParameterField {
 }
 
 /** n8n-style node-creator categories (matches n8n's real grouping, not its literal category labels). */
-export type NodeGroup = "ai" | "app" | "flow" | "core" | "humanReview";
+export type NodeGroup = "ai" | "app" | "flow" | "core" | "humanReview" | "data" | "platform";
 
 export interface NodeExecuteContext {
   parameters: Record<string, unknown>;
   input: NodeExecutionData[];
+  /** Host-injected integrations (DB clients, API clients) — undefined in the browser engine, provided by backend. */
+  services?: Record<string, unknown>;
 }
 
 /** Output items keyed by branch name (most node types only use "main"; `ifCondition` uses "true"/"false"). */

@@ -1,3 +1,6 @@
 [submodule "apps/admin-ui"]
 	path = apps/admin-ui
 	url = git@github.com:LamNP1/PiMSathonG5Tool.git
+[submodule "apps/backend"]
+	path = apps/backend
+	url = git@github.com:chienkq/pimsathon-backend.git

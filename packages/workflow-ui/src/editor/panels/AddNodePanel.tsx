@@ -6,12 +6,14 @@ import type { AddNodeRequest } from "../types.js";
 const GROUP_LABEL: Record<NodeGroup, string> = {
   ai: "AI Nodes",
   app: "Action in Apps",
+  platform: "Platform",
+  data: "Data",
   flow: "Flow",
   core: "Core",
   humanReview: "Human Review",
 };
 
-const GROUP_ORDER: NodeGroup[] = ["ai", "app", "flow", "core", "humanReview"];
+const GROUP_ORDER: NodeGroup[] = ["ai", "app", "platform", "data", "flow", "core", "humanReview"];
 
 const TRIGGER_HELP: Record<string, string> = {
   webhook: "Runs the flow when this URL is called externally. Good for getting started quickly",

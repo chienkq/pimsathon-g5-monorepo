@@ -44,8 +44,11 @@ function normalizeJiraIssue(issue: JiraIssue): NormalizedWorkItemFact {
   const priority = fields.priority as { name?: string } | undefined;
   const assignee = fields.assignee as { displayName?: string } | undefined;
   return {
+    // externalId is the issue key, not Jira's internal numeric id — so a live-synced issue and the
+    // same issue re-imported later from an Excel export (which only carries the key) land on the same
+    // row instead of duplicating it.
     provider: "jira",
-    externalId: issue.id,
+    externalId: issue.key,
     externalKey: issue.key,
     projectKey: project?.key ?? "",
     title: String(fields.summary ?? ""),

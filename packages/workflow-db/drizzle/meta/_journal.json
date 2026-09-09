@@ -50,6 +50,13 @@
       "when": 1788881664662,
       "tag": "0006_organic_jigsaw",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788939385366,
+      "tag": "0007_public_manta",
+      "breakpoints": true
     }
   ]
 }

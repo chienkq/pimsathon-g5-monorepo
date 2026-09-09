@@ -130,10 +130,16 @@ export const workItems = pgTable(
     dueDate: text("due_date").notNull().default(""),
     cycleId: text("cycle_id").notNull().default(""),
     moduleIds: jsonb("module_ids").$type<string[]>().notNull().default([]),
+    /** Set only for work items auto-created/updated from a `work_item_facts` row (e.g. Jira import/sync) — null for ones authored directly in the app. Lets re-importing the same issue update its work item instead of duplicating it. */
+    externalProvider: text("external_provider"),
+    externalKey: text("external_key"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [uniqueIndex("work_items_project_number").on(table.projectId, table.number)]
+  (table) => [
+    uniqueIndex("work_items_project_number").on(table.projectId, table.number),
+    uniqueIndex("work_items_external_provider_key").on(table.externalProvider, table.externalKey),
+  ]
 );
 
 /**

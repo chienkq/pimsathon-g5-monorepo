@@ -5,7 +5,10 @@ import type { NodeTypeDefinition } from "../types.js";
  * unparseable text. Distinct from post-run execution errors (see `NodeExecutionResult.error`),
  * mirroring n8n's separate "issues" (before run) vs execution-error (after run) states.
  */
-export function validateNode(nodeType: NodeTypeDefinition, parameters: Record<string, unknown>): string[] {
+export function validateNode(
+  nodeType: Pick<NodeTypeDefinition, "parameters">,
+  parameters: Record<string, unknown>
+): string[] {
   const issues: string[] = [];
 
   for (const field of nodeType.parameters) {

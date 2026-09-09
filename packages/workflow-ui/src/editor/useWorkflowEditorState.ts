@@ -1,14 +1,13 @@
-import {
-  executeWorkflow,
-  getNodeType,
-  type NodeExecutionResult,
-  type WorkflowConnection,
-  type WorkflowDefinition,
-  type WorkflowNodeDefinition,
+import type {
+  NodeExecutionResult,
+  WorkflowConnection,
+  WorkflowDefinition,
+  WorkflowNodeDefinition,
 } from "@chienkq/workflow-core";
 import { addEdge, useEdgesState, useNodesState, type Connection } from "@xyflow/react";
 import { useCallback, useEffect, useState } from "react";
 import { useWorkflowRepository } from "../context/WorkflowRepositoryContext.js";
+import { useNodeTypeLookup, useWorkflowRuntime } from "../context/WorkflowRuntimeContext.js";
 import type { WorkflowFlowEdge, WorkflowFlowNode } from "./types.js";
 
 export type RunStatus = "idle" | "running" | "success" | "error";
@@ -38,6 +37,8 @@ function toFlowEdges(connections: WorkflowConnection[]): WorkflowFlowEdge[] {
 
 export function useWorkflowEditorState(workflowId: string) {
   const repository = useWorkflowRepository();
+  const runtime = useWorkflowRuntime();
+  const getNodeType = useNodeTypeLookup();
   const [nodes, setNodes, onNodesChange] = useNodesState<WorkflowFlowNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<WorkflowFlowEdge>([]);
   const [name, setName] = useState("");
@@ -142,7 +143,7 @@ export function useWorkflowEditorState(workflowId: string) {
 
       return id;
     },
-    [nodes, setNodes, setEdges]
+    [nodes, setNodes, setEdges, getNodeType]
   );
 
   const deleteNode = useCallback(
@@ -224,7 +225,7 @@ export function useWorkflowEditorState(workflowId: string) {
       current.map((node) => ({ ...node, data: { ...node.data, status: undefined, result: undefined } }))
     );
     const workflow = buildWorkflowDefinition();
-    const result = await executeWorkflow(workflow, {
+    const result = await runtime.run(workflow, {
       onNodeStart: (nodeId) => {
         setNodes((current) =>
           current.map((node) => (node.id === nodeId ? { ...node, data: { ...node.data, status: "running" } } : node))
@@ -242,7 +243,7 @@ export function useWorkflowEditorState(workflowId: string) {
     });
     setRunStatus(result.status);
     setLastRunAt(result.finishedAt);
-  }, [buildWorkflowDefinition, setNodes]);
+  }, [buildWorkflowDefinition, setNodes, runtime]);
 
   return {
     nodes,

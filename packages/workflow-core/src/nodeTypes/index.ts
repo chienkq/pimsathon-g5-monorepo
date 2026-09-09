@@ -1,4 +1,4 @@
-import type { NodeTypeDefinition } from "../types.js";
+import type { NodeTypeDefinition, NodeTypeMeta } from "../types.js";
 import { aggregateNodeType } from "./aggregate.js";
 import { metisSoftwareNodeType, sonarQubeNodeType } from "./appActionNodes.js";
 import { codeNodeType } from "./code.js";
@@ -77,8 +77,43 @@ export function getNodeType(type: string): NodeTypeDefinition {
   return nodeType;
 }
 
+/**
+ * Like getNodeType, but returns a placeholder instead of throwing for node types
+ * that no longer exist in the registry (e.g. a node type removed after a workflow
+ * referencing it was saved). UI call sites should use this so a stale saved
+ * workflow can still be opened, inspected, and fixed instead of crashing.
+ */
+export function getNodeTypeSafe(type: string): NodeTypeDefinition {
+  return (
+    nodeTypeRegistry[type] ?? {
+      type,
+      displayName: `Unknown node (${type})`,
+      description: "This node type no longer exists. Delete this node or replace it with a supported one.",
+      group: "core",
+      color: "#94a3b8",
+      hasInput: true,
+      outputs: ["main"],
+      parameters: [],
+      async execute() {
+        throw new Error(`Unknown node type: ${type}`);
+      },
+    }
+  );
+}
+
 export function listNodeTypes(): NodeTypeDefinition[] {
   return Object.values(nodeTypeRegistry);
+}
+
+/** Strips `execute` — the boundary shape a `WorkflowRuntime.listNodeTypes()` serves over HTTP. */
+export function toNodeTypeMeta(nodeType: NodeTypeDefinition): NodeTypeMeta {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- destructure to omit `execute` from meta
+  const { execute: _execute, ...meta } = nodeType;
+  return meta;
+}
+
+export function listNodeTypeMetas(): NodeTypeMeta[] {
+  return listNodeTypes().map(toNodeTypeMeta);
 }
 
 export {

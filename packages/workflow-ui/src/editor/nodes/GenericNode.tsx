@@ -1,5 +1,5 @@
-import { getNodeType } from "@chienkq/workflow-core";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { useNodeType } from "../../context/WorkflowRuntimeContext.js";
 import type { WorkflowFlowNode } from "../types.js";
 import { SvgNodeIcon } from "./SvgNodeIcon.js";
 
@@ -11,7 +11,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export function GenericNode({ data, selected }: NodeProps<WorkflowFlowNode>) {
-  const nodeType = getNodeType(data.nodeType);
+  const nodeType = useNodeType(data.nodeType);
   const statusClass = data.status ? `wf-node--${data.status}` : "";
   const isTrigger = nodeType.isTrigger === true;
 

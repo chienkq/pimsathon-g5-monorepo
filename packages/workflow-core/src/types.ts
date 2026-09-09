@@ -53,6 +53,13 @@ export interface NodeTypeDefinition {
   execute(ctx: NodeExecuteContext): Promise<NodeExecuteResult>;
 }
 
+/**
+ * `NodeTypeDefinition` minus `execute` — the shape served by a `WorkflowRuntime.listNodeTypes()`,
+ * since a function can't cross an HTTP boundary. UI code that only renders/validates nodes (the Add
+ * Node panel, canvas, NDV) should depend on this, not the full definition.
+ */
+export type NodeTypeMeta = Omit<NodeTypeDefinition, "execute">;
+
 export interface WorkflowNodeDefinition {
   id: string;
   type: string;

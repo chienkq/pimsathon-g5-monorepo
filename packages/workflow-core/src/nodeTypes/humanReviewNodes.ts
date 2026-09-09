@@ -13,6 +13,11 @@ interface HumanReviewConfig {
  * Phase 1 (see auto-memory n8n_clone_gap_tracker.md): no credential/auth system exists yet, so
  * every channel node here is a stub that echoes back what would have been sent — real delivery
  * and reply-waiting land once credentials + a callback/webhook path exist.
+ *
+ * The Integrations screen (W6) added real credential storage + a "Test connection" action for
+ * gmail/outlook/teams/slack (see `apps/backend/src/{gmail,outlook,teams,slack}Client.ts`), but
+ * deliberately scoped to Workspace Settings only — NOT wired into these node types' `execute`.
+ * All six channel nodes here stay stub/simulated on the canvas.
  */
 function createHumanReviewNodeType(config: HumanReviewConfig): NodeTypeDefinition {
   return {

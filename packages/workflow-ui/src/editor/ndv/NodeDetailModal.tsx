@@ -1,5 +1,6 @@
-import { getNodeType, validateNode } from "@chienkq/workflow-core";
+import { validateNode } from "@chienkq/workflow-core";
 import { useEffect } from "react";
+import { useNodeType } from "../../context/WorkflowRuntimeContext.js";
 import { SvgNodeIcon } from "../nodes/SvgNodeIcon.js";
 import { ParameterField } from "../panels/ParameterField.js";
 import type { WorkflowFlowEdge, WorkflowFlowNode } from "../types.js";
@@ -52,7 +53,7 @@ function DataColumn({
 }
 
 export function NodeDetailModal({ node, nodes, edges, onChangeParameter, onClose }: NodeDetailModalProps) {
-  const nodeType = getNodeType(node.data.nodeType);
+  const nodeType = useNodeType(node.data.nodeType);
   const issues = validateNode(nodeType, node.data.parameters);
   const inputItems = getNodeInputData(node.id, nodes, edges).map((item) => item.json);
   const outputBranches = node.data.result?.branches ?? {};

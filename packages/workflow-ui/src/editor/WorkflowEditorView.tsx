@@ -1,6 +1,7 @@
-import { getNodeType, validateNode } from "@chienkq/workflow-core";
+import { validateNode } from "@chienkq/workflow-core";
 import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
 import { useEffect, useMemo, useState } from "react";
+import { useNodeTypeLookup } from "../context/WorkflowRuntimeContext.js";
 import { CANVAS_DEFAULT_ZOOM, CANVAS_FIT_VIEW_OPTIONS } from "./canvasConstants.js";
 import { NodeDetailModal } from "./ndv/NodeDetailModal.js";
 import { AddNodePanel } from "./panels/AddNodePanel.js";
@@ -28,6 +29,7 @@ export function WorkflowEditorView({ workflowId, onBack }: WorkflowEditorViewPro
 
 function WorkflowEditorViewInner({ workflowId, onBack }: WorkflowEditorViewProps) {
   const editor = useWorkflowEditorState(workflowId);
+  const getNodeType = useNodeTypeLookup();
   const [openNodeId, setOpenNodeId] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
   const [addRequest, setAddRequest] = useState<AddNodeRequest | undefined>(undefined);
@@ -57,7 +59,7 @@ function WorkflowEditorViewInner({ workflowId, onBack }: WorkflowEditorViewProps
           issues: validateNode(getNodeType(node.data.nodeType), node.data.parameters),
         },
       })),
-    [editor.nodes, connectedOutputsByNode, editor.deleteNode, editor.toggleNodeDisabled]
+    [editor.nodes, connectedOutputsByNode, editor.deleteNode, editor.toggleNodeDisabled, getNodeType]
   );
 
   const edgesWithHandlers: WorkflowFlowEdge[] = useMemo(

@@ -31,6 +31,10 @@ W7 và W13 trong lộ trình fast-track **chưa build**.
 Tất cả 6 workflow trên đăng ký trong `apps/backend/src/index.ts`'s `registeredWorkflows`, chạy được
 qua `POST /api/workflows/:id/run`, đã test thật (không phải chỉ type-check).
 
+| ID  | Tên                 | File / function                                                                                                        | Ghi chú                                                                                                                                                                                                                                                                                  |
+| --- | ------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| W6  | Integrations screen | `apps/admin-ui/src/features/integrations/Integrations.tsx` + `apps/backend/src/index.ts`'s `/api/integrations*` routes | 2026-09-09. Không phải workflow chạy theo lịch — màn hình "Integrations" (nav tab mới) để connect Jira/GitHub/Slack/Teams/Outlook/Gmail, lưu credential mã hoá AES-256-GCM (`credentials` table), nút "Test connection" gọi API thật. Chi tiết: auto-memory `integrations_screen_w6.md`. |
+
 ## Không phải "workflow" nhưng phục vụ cùng mục đích (build trực tiếp ở backend, không qua workflow engine)
 
 | Tính năng                                                              | File                                                                           | Vì sao không phải workflow                                                                                                                                     |
@@ -52,7 +56,7 @@ mất qua các lần nén context:
 | W18-20 | Metis (nhóm workflow liên quan tới "Metis" — 1 node `metisSoftwareNodeType` đã có sẵn trong `workflow-core` nhưng chưa có workflow nào dùng nó) | Chưa thiết kế cụ thể                                                                 |
 | W21-27 | Agent Ops (nhóm workflow vận hành AI agent)                                                                                                     | Chưa thiết kế cụ thể                                                                 |
 
-**Khoảng trống thật sự không chắc chắn**: W2, W4, W5, W6, W14, W15, W16 — tôi **không nhớ được**
+**Khoảng trống thật sự không chắc chắn**: W2, W4, W5, W14, W15, W16 — tôi **không nhớ được**
 nội dung các mục này (nếu từng được định nghĩa). Nếu bạn còn nhớ hoặc có ghi chú riêng ở đâu đó,
 xin bổ sung vào bảng trên; nếu không, coi như cần thiết kế lại từ đầu.
 

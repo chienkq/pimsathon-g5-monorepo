@@ -1,5 +1,6 @@
-import { listNodeTypes, type NodeGroup } from "@chienkq/workflow-core";
+import type { NodeGroup } from "@chienkq/workflow-core";
 import { useMemo, useState } from "react";
+import { useNodeTypes } from "../../context/WorkflowRuntimeContext.js";
 import { SvgNodeIcon } from "../nodes/SvgNodeIcon.js";
 import type { AddNodeRequest } from "../types.js";
 
@@ -27,7 +28,7 @@ export interface AddNodePanelProps {
 
 export function AddNodePanel({ request, onClose, onSelect }: AddNodePanelProps) {
   const [query, setQuery] = useState("");
-  const allNodeTypes = listNodeTypes();
+  const allNodeTypes = useNodeTypes();
 
   const groups = GROUP_ORDER;
 

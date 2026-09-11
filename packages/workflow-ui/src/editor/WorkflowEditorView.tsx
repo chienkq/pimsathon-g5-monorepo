@@ -1,11 +1,12 @@
 import { validateNode } from "@chienkq/workflow-core";
 import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
 import { useEffect, useMemo, useState } from "react";
-import { useNodeTypeLookup } from "../context/WorkflowRuntimeContext.js";
+import { useNodeTypeLookup, useWorkflowRuntime } from "../context/WorkflowRuntimeContext.js";
 import { CANVAS_DEFAULT_ZOOM, CANVAS_FIT_VIEW_OPTIONS } from "./canvasConstants.js";
 import { NodeDetailModal } from "./ndv/NodeDetailModal.js";
 import { AddNodePanel } from "./panels/AddNodePanel.js";
-import type { AddNodeRequest, WorkflowFlowEdge, WorkflowFlowNode } from "./types.js";
+import { WorkflowRunLogsPanel } from "./panels/WorkflowRunLogsPanel.js";
+import type { AddNodeRequest, RunLogsView, WorkflowFlowEdge, WorkflowFlowNode } from "./types.js";
 import { useWorkflowEditorState } from "./useWorkflowEditorState.js";
 import { WorkflowCanvas } from "./WorkflowCanvas.js";
 
@@ -17,22 +18,40 @@ function isTypingTarget(target: EventTarget | null): boolean {
 export interface WorkflowEditorViewProps {
   workflowId: string;
   onBack: () => void;
+  /**
+   * Controlled mode for the Run Logs panel: pass which face is open (e.g. parsed from the host
+   * app's URL) so the list/detail views are deep-linkable. Omit to let the editor manage it with
+   * its own internal state.
+   */
+  runLogsView?: RunLogsView | undefined;
+  /** Called whenever the Run Logs panel's view should change (open list, open a run, close, back to list). Required in controlled mode. */
+  onRunLogsViewChange?: (view: RunLogsView | undefined) => void;
 }
 
-export function WorkflowEditorView({ workflowId, onBack }: WorkflowEditorViewProps) {
+export function WorkflowEditorView({ workflowId, onBack, runLogsView, onRunLogsViewChange }: WorkflowEditorViewProps) {
   return (
     <ReactFlowProvider>
-      <WorkflowEditorViewInner workflowId={workflowId} onBack={onBack} />
+      <WorkflowEditorViewInner
+        workflowId={workflowId}
+        onBack={onBack}
+        runLogsView={runLogsView}
+        onRunLogsViewChange={onRunLogsViewChange}
+      />
     </ReactFlowProvider>
   );
 }
 
-function WorkflowEditorViewInner({ workflowId, onBack }: WorkflowEditorViewProps) {
+function WorkflowEditorViewInner({ workflowId, onBack, runLogsView, onRunLogsViewChange }: WorkflowEditorViewProps) {
   const editor = useWorkflowEditorState(workflowId);
   const getNodeType = useNodeTypeLookup();
+  const runtime = useWorkflowRuntime();
   const [openNodeId, setOpenNodeId] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
   const [addRequest, setAddRequest] = useState<AddNodeRequest | undefined>(undefined);
+  const isRunLogsControlled = runLogsView !== undefined || onRunLogsViewChange !== undefined;
+  const [internalRunLogsView, setInternalRunLogsView] = useState<RunLogsView | undefined>(undefined);
+  const activeRunLogsView = isRunLogsControlled ? runLogsView : internalRunLogsView;
+  const setRunLogsView = onRunLogsViewChange ?? setInternalRunLogsView;
 
   const connectedOutputsByNode = useMemo(() => {
     const map = new Map<string, Set<string>>();
@@ -45,21 +64,23 @@ function WorkflowEditorViewInner({ workflowId, onBack }: WorkflowEditorViewProps
     return map;
   }, [editor.edges]);
 
+  const { nodes: editorNodes, deleteNode, toggleNodeDisabled } = editor;
+
   const nodesWithHandlers: WorkflowFlowNode[] = useMemo(
     () =>
-      editor.nodes.map((node) => ({
+      editorNodes.map((node) => ({
         ...node,
         data: {
           ...node.data,
           connectedOutputs: Array.from(connectedOutputsByNode.get(node.id) ?? []),
           onAddFromOutput: (output: string) =>
             setAddRequest({ mode: "node", sourceNodeId: node.id, sourceOutput: output }),
-          onDelete: () => editor.deleteNode(node.id),
-          onToggleDisabled: () => editor.toggleNodeDisabled(node.id),
+          onDelete: () => deleteNode(node.id),
+          onToggleDisabled: () => toggleNodeDisabled(node.id),
           issues: validateNode(getNodeType(node.data.nodeType), node.data.parameters),
         },
       })),
-    [editor.nodes, connectedOutputsByNode, editor.deleteNode, editor.toggleNodeDisabled, getNodeType]
+    [editorNodes, connectedOutputsByNode, deleteNode, toggleNodeDisabled, getNodeType]
   );
 
   const edgesWithHandlers: WorkflowFlowEdge[] = useMemo(
@@ -75,7 +96,7 @@ function WorkflowEditorViewInner({ workflowId, onBack }: WorkflowEditorViewProps
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (isTypingTarget(event.target) || addRequest || openNodeId) return;
+      if (isTypingTarget(event.target) || addRequest || openNodeId || activeRunLogsView) return;
       const meta = event.ctrlKey || event.metaKey;
 
       if (meta && event.key.toLowerCase() === "a") {
@@ -112,7 +133,7 @@ function WorkflowEditorViewInner({ workflowId, onBack }: WorkflowEditorViewProps
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [editor, addRequest, openNodeId, reactFlow]);
+  }, [editor, addRequest, openNodeId, activeRunLogsView, reactFlow]);
 
   if (editor.isLoading) {
     return <p className="wf-muted">Loading…</p>;
@@ -166,6 +187,11 @@ function WorkflowEditorViewInner({ workflowId, onBack }: WorkflowEditorViewProps
           <input type="checkbox" checked={editor.active} onChange={() => void editor.toggleActive()} />
           <span>{editor.active ? "Active" : "Inactive"}</span>
         </label>
+        {runtime.listRuns && (
+          <button type="button" className="wf-button" onClick={() => setRunLogsView("list")}>
+            Run Logs
+          </button>
+        )}
         <button type="button" className="wf-button" disabled={isSaving} onClick={() => void handleSave()}>
           {isSaving ? "Saving…" : "Save"}
         </button>
@@ -208,6 +234,17 @@ function WorkflowEditorViewInner({ workflowId, onBack }: WorkflowEditorViewProps
           edges={editor.edges}
           onChangeParameter={editor.updateNodeParameter}
           onClose={() => setOpenNodeId(undefined)}
+        />
+      )}
+
+      {activeRunLogsView && (
+        <WorkflowRunLogsPanel
+          workflowId={workflowId}
+          view={activeRunLogsView}
+          nodes={editor.nodes}
+          onSelectRun={(runId) => setRunLogsView({ runId })}
+          onBackToList={() => setRunLogsView("list")}
+          onClose={() => setRunLogsView(undefined)}
         />
       )}
     </div>

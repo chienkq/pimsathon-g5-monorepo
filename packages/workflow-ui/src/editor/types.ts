@@ -29,5 +29,8 @@ export interface AddNodeRequest {
   sourceOutput?: string;
 }
 
+/** Which face of the Run Logs panel is open — `"list"` the run history, or one run's detail. Deep-linkable via URL by the host app. */
+export type RunLogsView = "list" | { runId: string };
+
 export type WorkflowFlowNode = Node<WorkflowNodeData, "workflowNode">;
 export type WorkflowFlowEdge = Edge<WorkflowEdgeData, "workflowEdge">;

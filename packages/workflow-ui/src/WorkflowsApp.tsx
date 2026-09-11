@@ -7,6 +7,7 @@ import { useState } from "react";
 import { WorkflowRepositoryProvider } from "./context/WorkflowRepositoryContext.js";
 import { WorkflowRuntimeProvider } from "./context/WorkflowRuntimeContext.js";
 import { WorkflowEditorView } from "./editor/WorkflowEditorView.js";
+import type { RunLogsView } from "./editor/types.js";
 import { WorkflowListView } from "./list/WorkflowListView.js";
 
 export interface WorkflowsAppProps {
@@ -23,6 +24,14 @@ export interface WorkflowsAppProps {
   onOpenWorkflow?: (workflowId: string) => void;
   /** Called when the user navigates back to the list from the editor. Required in controlled mode. */
   onBack?: () => void;
+  /**
+   * Controlled mode for the editor's Run Logs panel (list of past runs / one run's detail) — pass
+   * the view parsed from the host app's URL so both faces are deep-linkable. Omit to let the
+   * editor manage it with its own internal state.
+   */
+  runLogsView?: RunLogsView;
+  /** Called whenever the Run Logs panel's view should change. Required in controlled mode. */
+  onRunLogsViewChange?: (view: RunLogsView | undefined) => void;
 }
 
 /**
@@ -31,7 +40,15 @@ export interface WorkflowsAppProps {
  * get it working. Pass `workflowId`/`onOpenWorkflow`/`onBack` to put the host app's own routing
  * (e.g. a URL hash) in control instead, so a workflow can be deep-linked directly to its editor.
  */
-export function WorkflowsApp({ repository, runtime, workflowId, onOpenWorkflow, onBack }: WorkflowsAppProps) {
+export function WorkflowsApp({
+  repository,
+  runtime,
+  workflowId,
+  onOpenWorkflow,
+  onBack,
+  runLogsView,
+  onRunLogsViewChange,
+}: WorkflowsAppProps) {
   const [internalOpenWorkflowId, setInternalOpenWorkflowId] = useState<string | undefined>(undefined);
   const isControlled = workflowId !== undefined;
   const openWorkflowId = isControlled ? workflowId : internalOpenWorkflowId;
@@ -43,7 +60,12 @@ export function WorkflowsApp({ repository, runtime, workflowId, onOpenWorkflow, 
       <WorkflowRuntimeProvider runtime={runtime}>
         <div className="wf-app">
           {openWorkflowId ? (
-            <WorkflowEditorView workflowId={openWorkflowId} onBack={handleBack} />
+            <WorkflowEditorView
+              workflowId={openWorkflowId}
+              onBack={handleBack}
+              runLogsView={runLogsView}
+              onRunLogsViewChange={onRunLogsViewChange}
+            />
           ) : (
             <WorkflowListView onOpenWorkflow={handleOpenWorkflow} />
           )}

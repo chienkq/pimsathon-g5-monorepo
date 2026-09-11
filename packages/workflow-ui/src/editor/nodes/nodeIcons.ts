@@ -26,13 +26,15 @@ const FALLBACK_ICONS: IconMap = {
   jira: "◈",
   git: "⌥",
   gitCacheUpsert: "⇥",
-  factUpsert: "⇥",
-  factQuery: "⇤",
+  ticketUpsert: "⇥",
+  ticketQuery: "⇤",
   raiseAlert: "▲",
   workItem: "☐",
   planningGroup: "◫",
   aggregate: "Σ",
   publishWidget: "▥",
+  analysisResultSave: "⇥",
+  analysisResultQuery: "⇤",
 };
 
 export function getNodeIcon(type: string, fallback: string): string {

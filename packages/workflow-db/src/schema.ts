@@ -26,11 +26,11 @@ export const workflowRuns = pgTable("workflow_runs", {
 });
 
 /**
- * Normalized work-item facts, upserted by the `factUpsert` step after a Jira (or other tracker) sync.
+ * Normalized tickets, upserted by the `ticketUpsert` step after a Jira (or other tracker) sync.
  * Natural key is (provider, externalId) — matches how the sync workflow re-runs on overlapping windows.
  */
-export const workItemFacts = pgTable(
-  "work_item_facts",
+export const tickets = pgTable(
+  "tickets",
   {
     id: text("id").primaryKey(),
     provider: text("provider").notNull(),
@@ -46,7 +46,7 @@ export const workItemFacts = pgTable(
     raw: jsonb("raw").$type<Record<string, unknown>>().notNull(),
     syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [uniqueIndex("work_item_facts_provider_external_id").on(table.provider, table.externalId)]
+  (table) => [uniqueIndex("tickets_provider_external_id").on(table.provider, table.externalId)]
 );
 
 /** Health of each external connector, surfaced on the Integrations screen (W6). */
@@ -130,7 +130,9 @@ export const workItems = pgTable(
     dueDate: text("due_date").notNull().default(""),
     cycleId: text("cycle_id").notNull().default(""),
     moduleIds: jsonb("module_ids").$type<string[]>().notNull().default([]),
-    /** Set only for work items auto-created/updated from a `work_item_facts` row (e.g. Jira import/sync) — null for ones authored directly in the app. Lets re-importing the same issue update its work item instead of duplicating it. */
+    /** Estimate used for burndown/velocity (Analyze Cycle workflow) — null for items with no estimate. */
+    storyPoints: integer("story_points"),
+    /** Set only for work items auto-created/updated from a `tickets` row (e.g. Jira import/sync) — null for ones authored directly in the app. Lets re-importing the same issue update its work item instead of duplicating it. */
     externalProvider: text("external_provider"),
     externalKey: text("external_key"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -175,6 +177,27 @@ export const widgets = pgTable("widgets", {
   type: text("type", { enum: ["bar", "line", "pie", "table"] }).notNull(),
   series: jsonb("series").$type<Record<string, unknown>[]>().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * One row per Analyze Cycle / Analyze Module run, for the `analysisResultSave`/`analysisResultQuery`
+ * nodes — deliberately a separate table from `tickets` (not a generalization of it), since
+ * that table's schema/unique-index are tuned to Jira-issue-shaped tickets and Jira Sync/Alert Engine
+ * depend on that exact shape. `subjectId` is a `planning_groups.id` (a cycle or a module).
+ */
+export const analysisResults = pgTable("analysis_results", {
+  id: text("id").primaryKey(),
+  subjectType: text("subject_type", { enum: ["cycle", "module"] }).notNull(),
+  subjectId: text("subject_id").notNull(),
+  status: text("status", { enum: ["on_track", "at_risk", "off_track"] }).notNull(),
+  healthScore: integer("health_score").notNull(),
+  summary: text("summary").notNull().default(""),
+  risks: jsonb("risks").$type<Record<string, unknown>[]>().notNull().default([]),
+  completionDate: text("completion_date"),
+  recommendedActions: jsonb("recommended_actions").$type<string[]>().notNull().default([]),
+  needsAlert: boolean("needs_alert").notNull().default(false),
+  alertSeverity: text("alert_severity", { enum: ["low", "medium", "high", "critical"] }),
+  analyzedAt: timestamp("analyzed_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 /**

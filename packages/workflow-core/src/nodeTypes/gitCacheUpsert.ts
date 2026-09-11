@@ -4,7 +4,7 @@ import type { NodeExecutionData, NodeTypeDefinition } from "../types.js";
 /**
  * Caches real GitHub data (see git.ts's `GitClientService`) into Postgres so admin-ui's GitHub
  * screen and dashboard workflows can read it without hitting the GitHub API on every page view —
- * same "sync into a mirror table" shape as `factUpsert`, just for a different upstream connector.
+ * same "sync into a mirror table" shape as `ticketUpsert`, just for a different upstream connector.
  */
 export interface GitCacheStoreService {
   upsertRepository(owner: string, repo: string, info: GitRepositoryInfo): Promise<void>;
@@ -18,7 +18,8 @@ const ENTITIES = ["Repository", "Branches", "Pull Requests", "Issues"] as const;
 export const gitCacheUpsertNodeType: NodeTypeDefinition = {
   type: "gitCacheUpsert",
   displayName: "Git Cache — Upsert",
-  description: "Caches the upstream Git node's output (repository info, branches, PRs, or issues) into the fact store.",
+  description:
+    "Caches the upstream Git node's output (repository info, branches, PRs, or issues) into the cache store.",
   group: "data",
   color: "#7d726d",
   hasInput: true,

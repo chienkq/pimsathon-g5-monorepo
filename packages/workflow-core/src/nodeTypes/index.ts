@@ -1,5 +1,6 @@
 import type { NodeTypeDefinition, NodeTypeMeta } from "../types.js";
 import { aggregateNodeType } from "./aggregate.js";
+import { analysisResultQueryNodeType, analysisResultSaveNodeType } from "./analysisResult.js";
 import { metisSoftwareNodeType, sonarQubeNodeType } from "./appActionNodes.js";
 import { codeNodeType } from "./code.js";
 import {
@@ -12,8 +13,8 @@ import {
   teamsNodeType,
   telegramNodeType,
 } from "./humanReviewNodes.js";
-import { factQueryNodeType } from "./factQuery.js";
-import { factUpsertNodeType } from "./factUpsert.js";
+import { ticketQueryNodeType } from "./ticketQuery.js";
+import { ticketUpsertNodeType } from "./ticketUpsert.js";
 import { gitNodeType } from "./git.js";
 import { gitCacheUpsertNodeType } from "./gitCacheUpsert.js";
 import { httpRequestNodeType } from "./httpRequest.js";
@@ -43,12 +44,14 @@ export const nodeTypeRegistry: Record<string, NodeTypeDefinition> = {
   [workItemNodeType.type]: workItemNodeType,
   [planningGroupNodeType.type]: planningGroupNodeType,
   // Data
-  [factUpsertNodeType.type]: factUpsertNodeType,
-  [factQueryNodeType.type]: factQueryNodeType,
+  [ticketUpsertNodeType.type]: ticketUpsertNodeType,
+  [ticketQueryNodeType.type]: ticketQueryNodeType,
   [raiseAlertNodeType.type]: raiseAlertNodeType,
   [aggregateNodeType.type]: aggregateNodeType,
   [publishWidgetNodeType.type]: publishWidgetNodeType,
   [gitCacheUpsertNodeType.type]: gitCacheUpsertNodeType,
+  [analysisResultSaveNodeType.type]: analysisResultSaveNodeType,
+  [analysisResultQueryNodeType.type]: analysisResultQueryNodeType,
   // Flow
   [ifNodeType.type]: ifNodeType,
   [loopNodeType.type]: loopNodeType,
@@ -118,12 +121,14 @@ export function listNodeTypeMetas(): NodeTypeMeta[] {
 
 export {
   aggregateNodeType,
+  analysisResultQueryNodeType,
+  analysisResultSaveNodeType,
   chatNodeType,
   codeNodeType,
   discordNodeType,
   emailNodeType,
-  factQueryNodeType,
-  factUpsertNodeType,
+  ticketQueryNodeType,
+  ticketUpsertNodeType,
   ftpNodeType,
   gitCacheUpsertNodeType,
   gitNodeType,
@@ -149,10 +154,20 @@ export {
   workItemNodeType,
 };
 
-export type { FactStoreService, NormalizedWorkItemFact, StoredWorkItemFact, WorkItemFactFilter } from "./factUpsert.js";
+export type { TicketStoreService, NormalizedTicket, StoredTicket, TicketFilter } from "./ticketUpsert.js";
 export type { JiraClientService, JiraIssue } from "./jira.js";
 export type { GitBranch, GitClientService, GitCommit, GitIssue, GitPullRequest, GitRepositoryInfo } from "./git.js";
 export type { GitCacheStoreService } from "./gitCacheUpsert.js";
+export type { WebhookRequestPayload } from "./webhook.js";
+export type {
+  AnalysisAlertSeverity,
+  AnalysisResult,
+  AnalysisResultStoreService,
+  AnalysisRisk,
+  AnalysisStatus,
+  AnalysisSubjectType,
+  StoredAnalysisResult,
+} from "./analysisResult.js";
 export type { AlertSeverity, AlertStoreService, NormalizedAlert } from "./raiseAlert.js";
 export type { NormalizedWidget, WidgetStoreService, WidgetType } from "./publishWidget.js";
 export type {

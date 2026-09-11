@@ -33,6 +33,11 @@ export interface PlatformWorkItem {
   dueDate: string;
   cycleId: string;
   moduleIds: string[];
+  /** Estimate used for burndown/velocity (Analyze Cycle) — unset for items authored directly, not synced from a tracker. */
+  storyPoints?: number;
+  /** Set only for work items auto-created/updated from an external tracker (e.g. Jira sync) — see workItems.externalProvider/externalKey in workflow-db's schema. Lets a workflow look up "is there already a work item for this Jira issue / GitHub PR" before deciding to Create vs Update. */
+  externalProvider?: string;
+  externalKey?: string;
 }
 
 export type WorkItemInput = Omit<PlatformWorkItem, "id" | "number" | "projectCode" | "key">;
@@ -41,6 +46,8 @@ export interface WorkItemListFilter {
   projectId?: string;
   status?: WorkItemStatus;
   priority?: WorkItemPriority;
+  externalProvider?: string;
+  externalKey?: string;
 }
 
 /** Injected via `executeWorkflow(workflow, { services: { workItemStore } })` — backend provides the real implementation. */
@@ -123,6 +130,27 @@ export const workItemNodeType: NodeTypeDefinition = {
       default: "",
       helpText: "Used by Create, Update.",
     },
+    {
+      key: "storyPoints",
+      label: "Story Points",
+      type: "number",
+      default: "",
+      helpText: "Used by Create, Update. Estimate for burndown/velocity analysis.",
+    },
+    {
+      key: "externalProvider",
+      label: "External Provider",
+      type: "string",
+      default: "",
+      helpText: 'Used by List (filter), Create, Update. e.g. "jira" — links this item back to its source issue/PR.',
+    },
+    {
+      key: "externalKey",
+      label: "External Key",
+      type: "string",
+      default: "",
+      helpText: "Used by List (filter), Create, Update. e.g. a Jira issue key.",
+    },
   ],
   async execute({ parameters, services }) {
     const workItemStore = services?.workItemStore as WorkItemStoreService | undefined;
@@ -138,6 +166,8 @@ export const workItemNodeType: NodeTypeDefinition = {
         if (parameters.projectId) filter.projectId = String(parameters.projectId);
         if (parameters.status) filter.status = parameters.status as WorkItemStatus;
         if (parameters.priority) filter.priority = parameters.priority as WorkItemPriority;
+        if (parameters.externalProvider) filter.externalProvider = String(parameters.externalProvider);
+        if (parameters.externalKey) filter.externalKey = String(parameters.externalKey);
         const items = await workItemStore.list(filter);
         return { branches: { main: items.map(toItem) } };
       }
@@ -164,6 +194,12 @@ export const workItemNodeType: NodeTypeDefinition = {
           dueDate: String(parameters.dueDate ?? ""),
           cycleId: String(parameters.cycleId ?? ""),
           moduleIds: parseCommaList(parameters.moduleIds),
+          storyPoints:
+            parameters.storyPoints === "" || parameters.storyPoints === undefined
+              ? undefined
+              : Number(parameters.storyPoints),
+          externalProvider: parameters.externalProvider ? String(parameters.externalProvider) : undefined,
+          externalKey: parameters.externalKey ? String(parameters.externalKey) : undefined,
         });
         return { branches: { main: [toItem(created)] } };
       }
@@ -181,6 +217,10 @@ export const workItemNodeType: NodeTypeDefinition = {
         if (parameters.dueDate) patch.dueDate = String(parameters.dueDate);
         if (parameters.cycleId) patch.cycleId = String(parameters.cycleId);
         if (parameters.moduleIds) patch.moduleIds = parseCommaList(parameters.moduleIds);
+        if (parameters.storyPoints !== undefined && parameters.storyPoints !== "")
+          patch.storyPoints = Number(parameters.storyPoints);
+        if (parameters.externalProvider) patch.externalProvider = String(parameters.externalProvider);
+        if (parameters.externalKey) patch.externalKey = String(parameters.externalKey);
         const updated = await workItemStore.update(id, patch);
         return { branches: { main: [toItem(updated)] } };
       }

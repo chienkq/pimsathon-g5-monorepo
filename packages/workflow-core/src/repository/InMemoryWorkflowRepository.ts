@@ -28,6 +28,8 @@ export class InMemoryWorkflowRepository implements WorkflowRepository {
   }
 
   async remove(id: string): Promise<void> {
+    const workflow = this.workflows.get(id);
+    if (workflow?.isSystem) throw new Error(`Workflow ${id} is a system workflow and cannot be deleted`);
     this.workflows.delete(id);
   }
 
@@ -40,6 +42,7 @@ export class InMemoryWorkflowRepository implements WorkflowRepository {
       id: crypto.randomUUID(),
       name: `${source.name} (copy)`,
       active: false,
+      isSystem: false,
       createdAt: now,
       updatedAt: now,
     };

@@ -43,5 +43,6 @@ export function toWorkflowSummary(workflow: WorkflowDefinition): WorkflowSummary
     active: workflow.active,
     updatedAt: workflow.updatedAt,
     nodeCount: workflow.nodes.length,
+    isSystem: workflow.isSystem,
   };
 }

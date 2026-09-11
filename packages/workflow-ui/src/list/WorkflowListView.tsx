@@ -40,7 +40,8 @@ export function WorkflowListView({ onOpenWorkflow }: WorkflowListViewProps) {
   );
 
   const handleRemove = useCallback(
-    async (id: string, name: string) => {
+    async (id: string, name: string, isSystem?: boolean) => {
+      if (isSystem) return;
       if (!window.confirm(`Delete workflow "${name}"? This cannot be undone.`)) return;
       await repository.remove(id);
       await refresh();
@@ -98,6 +99,11 @@ export function WorkflowListView({ onOpenWorkflow }: WorkflowListViewProps) {
                   <button type="button" className="wf-link" onClick={() => onOpenWorkflow(workflow.id)}>
                     {workflow.name}
                   </button>
+                  {workflow.isSystem && (
+                    <span className="wf-tag wf-tag--system" title="Built-in workflow, managed by the system">
+                      System
+                    </span>
+                  )}
                 </td>
                 <td>
                   <label className="wf-switch">
@@ -118,7 +124,9 @@ export function WorkflowListView({ onOpenWorkflow }: WorkflowListViewProps) {
                   <button
                     type="button"
                     className="wf-button wf-button--danger"
-                    onClick={() => void handleRemove(workflow.id, workflow.name)}
+                    disabled={workflow.isSystem}
+                    title={workflow.isSystem ? "System workflows can't be deleted" : undefined}
+                    onClick={() => void handleRemove(workflow.id, workflow.name, workflow.isSystem)}
                   >
                     Delete
                   </button>

@@ -6,6 +6,8 @@ export const workflows = pgTable("workflows", {
   name: text("name").notNull(),
   definition: jsonb("definition").$type<Record<string, unknown>>().notNull(),
   active: boolean("active").notNull().default(false),
+  /** True for built-in workflows registered at server startup (e.g. Jira Sync) — protects them from deletion via the API. Never settable through the editor's save/PUT. */
+  isSystem: boolean("is_system").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -135,6 +137,13 @@ export const workItems = pgTable(
     /** Set only for work items auto-created/updated from a `tickets` row (e.g. Jira import/sync) — null for ones authored directly in the app. Lets re-importing the same issue update its work item instead of duplicating it. */
     externalProvider: text("external_provider"),
     externalKey: text("external_key"),
+    /**
+     * Last-synced-from-Jira snapshot of the three mergeable fields, used as the "base" in a
+     * three-way merge on re-conversion (see `jiraTicketToWorkItem.ts`) — lets a re-sync tell
+     * "Jira changed this" apart from "the user changed this in the app" instead of blindly
+     * overwriting local edits. Null until the first conversion from a ticket.
+     */
+    externalSyncBase: jsonb("external_sync_base").$type<{ title: string; status: string; priority: string }>(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -142,6 +151,29 @@ export const workItems = pgTable(
     uniqueIndex("work_items_project_number").on(table.projectId, table.number),
     uniqueIndex("work_items_external_provider_key").on(table.externalProvider, table.externalKey),
   ]
+);
+
+/**
+ * A field left unresolved by the three-way merge in `jiraTicketToWorkItem.ts` — both the work item
+ * (`appValue`) and the Jira ticket (`jiraValue`) changed the same field since the last sync, so
+ * neither is applied automatically. One row per `(workItemId, field)`; resolving it (see
+ * `ticketSyncConflictStore.ts`) deletes the row. Scoped to `work_items` directly rather than a
+ * separate link table (unlike GitHub's `issueLinks`) since `work_items` already has a 1:1 link to
+ * its source ticket via `externalProvider`/`externalKey`.
+ */
+export const ticketSyncConflicts = pgTable(
+  "ticket_sync_conflicts",
+  {
+    id: text("id").primaryKey(),
+    workItemId: text("work_item_id")
+      .notNull()
+      .references(() => workItems.id, { onDelete: "cascade" }),
+    field: text("field", { enum: ["title", "status", "priority"] }).notNull(),
+    appValue: jsonb("app_value").$type<string>().notNull(),
+    jiraValue: jsonb("jira_value").$type<string>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("ticket_sync_conflicts_work_item_field").on(table.workItemId, table.field)]
 );
 
 /**

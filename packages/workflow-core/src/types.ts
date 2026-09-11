@@ -86,6 +86,8 @@ export interface WorkflowDefinition {
   active: boolean;
   createdAt: string;
   updatedAt: string;
+  /** Built-in workflow registered at server startup (e.g. Jira Sync) — can't be deleted. Defaults to false; not settable from the editor. */
+  isSystem?: boolean;
 }
 
 export interface WorkflowSummary {
@@ -94,4 +96,5 @@ export interface WorkflowSummary {
   active: boolean;
   updatedAt: string;
   nodeCount: number;
+  isSystem?: boolean;
 }

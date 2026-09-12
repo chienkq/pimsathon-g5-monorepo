@@ -9,8 +9,20 @@ import { useNodeType } from "../../context/WorkflowRuntimeContext.js";
 import { SvgNodeIcon } from "../nodes/SvgNodeIcon.js";
 import { ParameterField } from "../panels/ParameterField.js";
 import type { WorkflowFlowEdge, WorkflowFlowNode } from "../types.js";
+import { generatePath } from "./expressionPath.js";
 import { getAncestorNodes, getNodeInputData, getNodeInputGroups } from "./getNodeInputData.js";
 import { JsonTree } from "./JsonTree.js";
+
+/** Builds a `JsonTree` `buildExpression` for a tree of `items.map(item => item.json)` — the row's
+ *  `path[0]` is the item index (not part of the JSON shape itself, just "which item"), so it's
+ *  dropped: `{{ $json.foo }}` refers to the current item's field regardless of which one was clicked. */
+function itemsExpressionBuilder(root: string) {
+  return (path: Array<string | number>): string | undefined => {
+    if (path.length === 0) return undefined;
+    const [, ...fieldPath] = path;
+    return `{{ ${generatePath(root, fieldPath)} }}`;
+  };
+}
 
 export interface NodeDetailModalProps {
   node: WorkflowFlowNode;
@@ -43,6 +55,7 @@ function DataColumn({
   error,
   trace,
   headerAction,
+  buildExpression,
 }: {
   title: string;
   items: unknown[];
@@ -52,6 +65,7 @@ function DataColumn({
    *  iteration limit without a final answer) — see `NodeExecutionResult.trace`. */
   trace?: unknown[];
   headerAction?: ReactNode;
+  buildExpression?: (path: Array<string | number>) => string | undefined;
 }) {
   return (
     <div className="wf-ndv-column wf-ndv-column--data">
@@ -82,7 +96,7 @@ function DataColumn({
         ) : items.length === 0 ? (
           <p className="wf-muted">{emptyHint}</p>
         ) : (
-          <JsonTree data={items} />
+          <JsonTree data={items} buildExpression={buildExpression} />
         )}
       </div>
     </div>
@@ -103,7 +117,10 @@ function AncestorDataGroup({ name, items }: { name: string; items: NodeExecution
       </summary>
       {/* Not yet executed: shown as one empty item rather than hidden, so the section still reads as
        *  "this node's data will land here" instead of looking broken/omitted. */}
-      <JsonTree data={items.length > 0 ? items.map((item) => item.json) : [{}]} />
+      <JsonTree
+        data={items.length > 0 ? items.map((item) => item.json) : [{}]}
+        buildExpression={itemsExpressionBuilder(`$node["${name}"].json`)}
+      />
     </details>
   );
 }
@@ -151,14 +168,20 @@ function InputDataColumn({
               {group.items.length === 0 ? (
                 <p className="wf-muted">{emptyHint}</p>
               ) : (
-                <JsonTree data={group.items.map((item) => item.json)} />
+                <JsonTree
+                  data={group.items.map((item) => item.json)}
+                  buildExpression={itemsExpressionBuilder(`$node["${group.sourceNodeName}"].json`)}
+                />
               )}
             </div>
           ))
         ) : totalCount === 0 ? (
           <p className="wf-muted">{emptyHint}</p>
         ) : (
-          <JsonTree data={(inputGroups[0]?.items ?? []).map((item) => item.json)} />
+          <JsonTree
+            data={(inputGroups[0]?.items ?? []).map((item) => item.json)}
+            buildExpression={itemsExpressionBuilder("$json")}
+          />
         )}
         {fartherAncestors.length > 0 && (
           <details className="wf-ndv-ancestors">
@@ -205,36 +228,51 @@ export function NodeDetailModal({
   const outputItems = Object.values(outputBranches)
     .flat()
     .map((item) => item.json);
+  // node.data.status only reflects "running" for the node actually being run — "Execute Node
+  // Before" runs ancestors and never flips the target node's own status, so it alone can't drive
+  // the buttons. isExecuting tracks the in-flight request for whichever action was clicked and
+  // disables all three buttons until the response (success or error) comes back.
   const isRunning = node.data.status === "running";
   const [executeError, setExecuteError] = useState<string | undefined>(undefined);
+  const [isExecuting, setIsExecuting] = useState(false);
+  const isBusy = isRunning || isExecuting;
 
   const handleExecute = async () => {
     if (!onExecute) return;
     setExecuteError(undefined);
+    setIsExecuting(true);
     try {
       await onExecute(node.id, inputData);
     } catch (error) {
       setExecuteError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsExecuting(false);
     }
   };
 
   const handleExecuteWithUpstream = async () => {
     if (!onExecuteWithUpstream) return;
     setExecuteError(undefined);
+    setIsExecuting(true);
     try {
       await onExecuteWithUpstream(node.id);
     } catch (error) {
       setExecuteError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsExecuting(false);
     }
   };
 
   const handleExecuteUpstreamOnly = async () => {
     if (!onExecuteUpstreamOnly) return;
     setExecuteError(undefined);
+    setIsExecuting(true);
     try {
       await onExecuteUpstreamOnly(node.id);
     } catch (error) {
       setExecuteError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsExecuting(false);
     }
   };
 
@@ -267,10 +305,10 @@ export function NodeDetailModal({
               type="button"
               className="wf-button wf-button--primary wf-ndv__execute"
               onClick={() => void handleExecuteWithUpstream()}
-              disabled={isRunning}
+              disabled={isBusy}
               title="Run every upstream node, then this one"
             >
-              {isRunning ? "Executing…" : "Execute"}
+              {isBusy ? "Executing…" : "Execute"}
             </button>
           )}
           {onStopExecute && isRunning && (
@@ -294,10 +332,10 @@ export function NodeDetailModal({
                   type="button"
                   className="wf-button wf-ndv__execute-node-only"
                   onClick={() => void handleExecuteUpstreamOnly()}
-                  disabled={isRunning}
+                  disabled={isBusy}
                   title="Run every upstream node, without running this node"
                 >
-                  {isRunning ? "Executing…" : "Execute Node Before"}
+                  {isBusy ? "Executing…" : "Execute Node Before"}
                 </button>
               )
             }
@@ -345,16 +383,17 @@ export function NodeDetailModal({
             emptyHint="No output yet. Execute this node or the workflow to see data here."
             error={executeError ?? (node.data.result?.status === "error" ? node.data.result.error : undefined)}
             trace={node.data.result?.status === "error" ? node.data.result.trace : undefined}
+            buildExpression={itemsExpressionBuilder(`$node["${node.data.label}"].json`)}
             headerAction={
               onExecute && (
                 <button
                   type="button"
                   className="wf-button wf-ndv__execute-node-only"
                   onClick={() => void handleExecute()}
-                  disabled={isRunning}
+                  disabled={isBusy}
                   title="Run only this node, using its current input data"
                 >
-                  {isRunning ? "Executing…" : "Execute Node Only"}
+                  {isBusy ? "Executing…" : "Execute Node Only"}
                 </button>
               )
             }

@@ -1297,6 +1297,7 @@
 
 .wf-json__row {
   white-space: nowrap;
+  position: relative;
 }
 
 .wf-json__children {
@@ -1305,7 +1306,8 @@
   padding-left: 10px;
 }
 
-.wf-json__toggle {
+.wf-json__toggle,
+.wf-json__caret-toggle {
   display: inline-flex;
   align-items: baseline;
   gap: 2px;
@@ -1318,9 +1320,14 @@
   cursor: pointer;
 }
 
+.wf-json__caret-toggle {
+  align-items: center;
+  margin-right: 2px;
+}
+
 .wf-json__caret {
   display: inline-block;
-  font-size: 0.65rem;
+  font-size: 1.5rem;
   color: var(--wf-color-muted);
   transition: transform 100ms ease;
 }
@@ -1330,6 +1337,43 @@
 }
 
 .wf-json__key {
+  color: var(--wf-color-text);
+  font-weight: 600;
+}
+
+/* A row key rendered as a chip-style button (only when the tree can build a copyable expression for
+ * it) — the n8n-style affordance of clicking the field name itself, rather than a separate button,
+ * to copy `{{ $json.foo }}` to the clipboard. The outline + margin make it read as its own clickable
+ * control rather than plain text, and keep it visually separated from neighboring keys/brackets. */
+button.wf-json__key--copyable {
+  border: 1px solid var(--wf-color-border);
+  background: var(--wf-color-surface);
+  padding: 1px 6px;
+  margin: 0 4px 0 2px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--wf-color-text);
+  border-radius: var(--wf-radius-sm);
+  cursor: pointer;
+  transition:
+    background 100ms ease,
+    border-color 100ms ease,
+    color 100ms ease;
+}
+
+button.wf-json__key--copyable:hover {
+  background: var(--wf-color-primary-transparent);
+  border-color: var(--wf-color-primary);
+  color: var(--wf-color-primary);
+}
+
+button.wf-json__key--copied {
+  background: var(--wf-color-success);
+  border-color: var(--wf-color-success);
+  color: var(--wf-color-primary-contrast);
+}
+
+.wf-json__key-colon {
   color: var(--wf-color-text);
   font-weight: 600;
 }

@@ -74,6 +74,15 @@ packages/
 
 ---
 
+## 4.1 Screenshot — Workflow Editor
+
+![w:950](./screenshots/04-workflow-editor.png)
+
+<!-- 📸 Chèn ảnh: canvas kéo-thả + Node Detail Modal (NDV) 3 cột Input/Parameters/Output.
+File: docs/screenshots/04-workflow-editor.png -->
+
+---
+
 ## 5. Tính năng nổi bật #2 — Tích hợp hệ sinh thái làm việc
 
 **Integrations (Settings → Integrations):**
@@ -89,6 +98,15 @@ packages/
 
 ---
 
+## 5.1 Screenshot — Integrations
+
+![w:950](./screenshots/05-integrations.png)
+
+<!-- 📸 Chèn ảnh: màn hình Settings → Integrations (danh sách Jira/GitHub/Slack/Teams/Outlook/Gmail).
+File: docs/screenshots/05-integrations.png -->
+
+---
+
 ## 6. Tính năng nổi bật #3 — AI Agents "biết đọc code thật"
 
 - **AI Agent node**: gọi LLM thật (không còn stub) qua **LLM Configs** do người dùng tự khai báo (provider/model/temperature/...)
@@ -100,6 +118,15 @@ packages/
 
 ---
 
+## 6.1 Screenshot — AI xác minh tiến độ
+
+![w:950](./screenshots/06-ai-agent-verify.png)
+
+<!-- 📸 Chèn ảnh: Work Item Authenticity Agent đang chạy (git grep + kết luận), hoặc AI Agent node trong workflow.
+File: docs/screenshots/06-ai-agent-verify.png -->
+
+---
+
 ## 7. Tính năng nổi bật #4 — Quản lý Work Item toàn diện
 
 - Work Item gắn với **Development tab**: chọn nguồn Git (Local hoặc GitHub) mặc định
@@ -108,7 +135,73 @@ packages/
 
 ---
 
-## 8. Tech Stack
+## 7.1 Screenshot — Work Item Detail
+
+![w:950](./screenshots/07-work-item.png)
+
+<!-- 📸 Chèn ảnh: Work Item detail, tab Development (chọn Git source) hoặc tab Automation.
+File: docs/screenshots/07-work-item.png -->
+
+---
+
+## 8. Tính năng nổi bật #5 — Quản lý Sprint & Module
+
+- **Sprint (Cycle)**: cửa sổ làm việc có start/end date, tự tính **% hoàn thành**, số item **overdue**, breakdown theo status/priority
+- **Module**: nhóm work item theo hạng mục/tính năng — 1 work item có thể thuộc **nhiều module cùng lúc**
+- Mỗi Sprint/Module có **trang chi tiết riêng** (danh sách work item, tiến độ, deep-link `?sprint=`/`?module=`)
+- Dữ liệu này nuôi trực tiếp **Cycle progress**, **Milestones**, **Velocity trend** trên Project Health
+
+---
+
+## 8.1 Screenshot — Sprints & Modules
+
+![w:950](./screenshots/08-sprints-modules.png)
+
+<!-- 📸 Chèn ảnh: màn hình danh sách Sprints hoặc Modules, kèm 1 trang chi tiết sprint/module.
+File: docs/screenshots/08-sprints-modules.png -->
+
+---
+
+## 9. Tính năng nổi bật #6 — Project Health Dashboard
+
+Một màn hình tổng hợp **real-time từ dữ liệu thật** của project:
+
+- **Team workload**, **Bugs theo status/priority**, **Milestones & Cycle progress** (thanh tiến độ, cảnh báo "At risk")
+- **Velocity trend**: story point hoàn thành theo từng cycle đã kết thúc
+- **Dev activity**: PR đang mở/đã merge, số commit 7 ngày gần nhất (biểu đồ theo ngày)
+- **AI health rollup**: điểm sức khoẻ, risk, recommended actions — lấy từ kết quả workflow Analyze Cycle/Module
+- **Alerts**: cảnh báo do Alert Engine workflow tạo ra cho project
+
+---
+
+## 9.1 Screenshot — Project Health
+
+![w:950](./screenshots/09-project-health.png)
+
+<!-- 📸 Chèn ảnh: toàn bộ Project Health dashboard (workload, velocity, dev activity, AI health rollup).
+File: docs/screenshots/09-project-health.png -->
+
+---
+
+## 10. Tính năng nổi bật #7 — Quản lý AI Agent & Tools
+
+- **AI Agent**: một system prompt viết bằng Markdown, gắn với **1 LLM Config**, chọn các **Tools** được phép gọi, giới hạn số vòng gọi tool tối đa
+- **Agent Tools**: hàm **JavaScript** tự viết + **JSON Schema** mô tả tham số, có nút **Run** để test độc lập ngay trong UI trước khi gán cho agent
+- Dùng trong workflow qua node **"Send Message to Agent"** — chọn agent từ dropdown, không cần cấu hình lại
+- Tool-calling loop chạy **thật** trên OpenAI / Anthropic / Azure OpenAI / OpenAI-compatible
+
+---
+
+## 10.1 Screenshot — AI Agents & Tools
+
+![w:950](./screenshots/10-ai-agents-tools.png)
+
+<!-- 📸 Chèn ảnh: Settings → AI Agents (danh sách/edit form) và Settings → Tools (form + nút Run test).
+File: docs/screenshots/10-ai-agents-tools.png -->
+
+---
+
+## 11. Tech Stack
 
 - **Frontend:** React, Vite, React Flow (@xyflow/react), TypeScript
 - **Backend:** Fastify, Drizzle ORM, PostgreSQL
@@ -119,17 +212,20 @@ packages/
 
 ---
 
-## 9. Demo Flow (gợi ý trình bày trực tiếp)
+## 12. Demo Flow (gợi ý trình bày trực tiếp)
 
 1. Mở **Work Item** → tab Automation → chọn workflow áp dụng
 2. Mở **Workflow Editor** → dựng nhanh 1 flow: Trigger → AI Agent → Update Work Item
 3. Bấm **Run** → xem log 3 cột Input/Parameters/Output chạy thật
-4. Vào **Settings → Integrations** → test connection Jira/Slack
-5. Chạy **Work Item Authenticity Agent** → cho thấy AI tự grep code và kết luận
+4. Vào **Sprints/Modules** → tạo 1 sprint, gán work item, xem % tiến độ tự cập nhật
+5. Vào **Health** → xem workload, velocity trend, dev activity và AI health rollup của cùng project đó
+6. Vào **Settings → AI Agents / Tools** → tạo nhanh 1 tool JS, gán vào agent, bấm **Run** để test tool
+7. Vào **Settings → Integrations** → test connection Jira/Slack
+8. Chạy **Work Item Authenticity Agent** → cho thấy AI tự grep code và kết luận
 
 ---
 
-## 10. Roadmap tiếp theo
+## 13. Roadmap tiếp theo
 
 - [ ] `workItemTrigger` node thật (hiện đang dùng Webhook Jira/GitHub thay thế)
 - [ ] Webhook node nhận payload thật (hiện còn mô phỏng)
@@ -141,7 +237,7 @@ _(Theo dõi chi tiết tại `docs/pm-workitem-workflows.md` và checklist n8n-c
 
 ---
 
-## 11. Kết luận
+## 14. Kết luận
 
 **PIMSathon G5** biến việc quản lý dự án từ _nhập liệu & đoán trạng thái_ thành:
 

@@ -16,12 +16,14 @@ import type { SendMessageToAgentService } from "./sendMessageToAgent.js";
  */
 
 export type AuthenticityVerdict = "done" | "partial" | "not_found";
+export type AuthenticityCheckType = "code" | "health";
 
 interface FinalDecision {
   verdict: AuthenticityVerdict;
   confidence: number;
   reasoning: string;
   relevantFiles: string[];
+  checkType: AuthenticityCheckType;
 }
 
 interface CachedAnalysis extends FinalDecision {
@@ -58,11 +60,13 @@ function normalizeFinal(parsed: Record<string, unknown> | undefined, fallbackRea
   const verdictRaw = String(parsed?.verdict ?? "");
   const verdict: AuthenticityVerdict = verdictRaw === "done" || verdictRaw === "partial" ? verdictRaw : "not_found";
   const confidence = Number(parsed?.confidence);
+  const checkType: AuthenticityCheckType = parsed?.checkType === "health" ? "health" : "code";
   return {
     verdict,
     confidence: Number.isFinite(confidence) ? Math.min(1, Math.max(0, confidence)) : 0,
     reasoning: String(parsed?.reasoning ?? "") || fallbackReason,
     relevantFiles: Array.isArray(parsed?.relevantFiles) ? (parsed.relevantFiles as unknown[]).map(String) : [],
+    checkType,
   };
 }
 
@@ -81,14 +85,17 @@ function parseCache(aiNote: unknown): CachedAnalysis | undefined {
 
 function composeAiNote(decision: FinalDecision, analyzedAt: string, usedCache: boolean): string {
   const cache: CachedAnalysis = { ...decision, analyzedAt };
+  const label = decision.checkType === "health" ? "Health Check" : "Authenticity Analysis";
   const lines = [
-    `[Authenticity Analysis — ${analyzedAt}]`,
+    `[${label} — ${analyzedAt}]`,
     `Verdict: ${decision.verdict} (confidence ${decision.confidence.toFixed(2)}${usedCache ? ", re-verified from cache" : ""})`,
     `Reasoning: ${decision.reasoning}`,
-    decision.relevantFiles.length > 0
-      ? `Relevant files:\n${decision.relevantFiles.map((f) => `- ${f}`).join("\n")}`
-      : "Relevant files: none found",
-  ];
+    decision.checkType === "health"
+      ? undefined
+      : decision.relevantFiles.length > 0
+        ? `Relevant files:\n${decision.relevantFiles.map((f) => `- ${f}`).join("\n")}`
+        : "Relevant files: none found",
+  ].filter((line): line is string => Boolean(line));
   return `${lines.join("\n")}\n${CACHE_PREFIX}${JSON.stringify(cache)}${CACHE_SUFFIX}`;
 }
 
@@ -110,17 +117,27 @@ function toHealthScore(verdict: AuthenticityVerdict): number {
 function buildMessage(workItemContext: unknown, cached: CachedAnalysis | undefined): string {
   if (!cached) {
     return (
-      `This work item has no AI Note yet. Call recall_workitem first to pull its full record and raw Jira ` +
-      `payload, decide from that alone whether a source-code check is even necessary, and only search/read ` +
-      `source if it is. Then answer with the final JSON verdict.\n\n` +
+      `This work item has no AI Note yet. First decide from its title/description (call recall_workitem ` +
+      `first if that's unclear) whether it actually needs a code check (Path A) or just a health check ` +
+      `(Path B), then follow that path fully. Then answer with the final JSON verdict.\n\n` +
+      `Work item:\n${JSON.stringify(workItemContext)}`
+    );
+  }
+  if (cached.checkType === "health") {
+    return (
+      `You previously ran a health check on this work item (prior verdict: ${cached.verdict}, confidence ` +
+      `${cached.confidence}). Re-fetch its current record with recall_workitem and redo the health check ` +
+      `(assignee, deadline, description quality) against its current state — don't assume it's still needed ` +
+      `if the item now clearly requires code instead. Then answer with the final JSON verdict.\n\n` +
       `Work item:\n${JSON.stringify(workItemContext)}`
     );
   }
   return (
-    `You previously analyzed this work item and found these relevant files: ${JSON.stringify(cached.relevantFiles)} ` +
-    `(prior verdict: ${cached.verdict}, confidence ${cached.confidence}). Since an AI Note already exists, go ` +
-    `straight to source: re-read those files with your read_file tool and confirm whether they still support ` +
-    `that verdict — search for anything new only if they no longer do. Then answer with the final JSON verdict.\n\n` +
+    `You previously ran a code check on this work item and found these relevant files: ` +
+    `${JSON.stringify(cached.relevantFiles)} (prior verdict: ${cached.verdict}, confidence ${cached.confidence}). ` +
+    `Since an AI Note already exists, go straight to source: re-read those files with your read_file tool and ` +
+    `confirm whether they still support that verdict — search for anything new only if they no longer do. ` +
+    `Then answer with the final JSON verdict.\n\n` +
     `Work item:\n${JSON.stringify(workItemContext)}`
   );
 }

@@ -316,6 +316,71 @@
   flex: 1;
 }
 
+/* ---- Edit Detail modal (name + description) ---- */
+.wf-detail-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgb(10 10 16 / 55%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.wf-detail-modal {
+  width: 100%;
+  max-width: 480px;
+  background: var(--wf-color-bg);
+  border-radius: var(--wf-radius-xl);
+  box-shadow: 0 20px 60px rgb(0 0 0 / 30%);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.wf-detail-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--wf-color-border);
+}
+
+.wf-detail-modal__header h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.wf-detail-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+}
+
+.wf-detail-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.wf-detail-modal__field textarea {
+  resize: vertical;
+  font-family: inherit;
+}
+
+.wf-detail-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--wf-color-border);
+}
+
 /* ---- Floating canvas toolbar (top-right icon rail) ---- */
 .wf-canvas-toolbar {
   position: absolute;

@@ -3,6 +3,7 @@ import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
 import { useEffect, useMemo, useState } from "react";
 import { useNodeTypeLookup, useWorkflowRuntime } from "../context/WorkflowRuntimeContext.js";
 import { CANVAS_DEFAULT_ZOOM, CANVAS_FIT_VIEW_OPTIONS } from "./canvasConstants.js";
+import { EditWorkflowDetailModal } from "./EditWorkflowDetailModal.js";
 import { NodeDetailModal } from "./ndv/NodeDetailModal.js";
 import { AddNodePanel } from "./panels/AddNodePanel.js";
 import { WorkflowRunLogsPanel } from "./panels/WorkflowRunLogsPanel.js";
@@ -48,6 +49,7 @@ function WorkflowEditorViewInner({ workflowId, onBack, runLogsView, onRunLogsVie
   const [openNodeId, setOpenNodeId] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
   const [addRequest, setAddRequest] = useState<AddNodeRequest | undefined>(undefined);
+  const [isEditingDetail, setIsEditingDetail] = useState(false);
   const isRunLogsControlled = runLogsView !== undefined || onRunLogsViewChange !== undefined;
   const [internalRunLogsView, setInternalRunLogsView] = useState<RunLogsView | undefined>(undefined);
   const activeRunLogsView = isRunLogsControlled ? runLogsView : internalRunLogsView;
@@ -183,6 +185,9 @@ function WorkflowEditorViewInner({ workflowId, onBack, runLogsView, onRunLogsVie
           onChange={(event) => editor.setName(event.target.value)}
         />
         <span className="wf-editor__spacer" />
+        <button type="button" className="wf-button" onClick={() => setIsEditingDetail(true)}>
+          Edit Detail
+        </button>
         <label className="wf-switch">
           <input type="checkbox" checked={editor.active} onChange={() => void editor.toggleActive()} />
           <span>{editor.active ? "Active" : "Inactive"}</span>
@@ -226,6 +231,19 @@ function WorkflowEditorViewInner({ workflowId, onBack, runLogsView, onRunLogsVie
       </div>
 
       <AddNodePanel request={addRequest} onClose={() => setAddRequest(undefined)} onSelect={handleSelectNodeType} />
+
+      {isEditingDetail && (
+        <EditWorkflowDetailModal
+          name={editor.name}
+          description={editor.description}
+          onClose={() => setIsEditingDetail(false)}
+          onSave={(nextName, nextDescription) => {
+            editor.setName(nextName);
+            editor.setDescription(nextDescription);
+            setIsEditingDetail(false);
+          }}
+        />
+      )}
 
       {openNode && (
         <NodeDetailModal

@@ -1,4 +1,4 @@
-import type { WorkflowDefinition, WorkflowSummary } from "../types.js";
+import type { WorkflowDefinition, WorkflowNodeDefinition, WorkflowSummary } from "../types.js";
 import { createEmptyWorkflow, toWorkflowSummary, type WorkflowRepository } from "./WorkflowRepository.js";
 
 /** Plain in-memory store. Used as a safe default outside the browser (tests, SSR) and for unit tests. */
@@ -15,8 +15,8 @@ export class InMemoryWorkflowRepository implements WorkflowRepository {
     return this.workflows.get(id);
   }
 
-  async create(name: string): Promise<WorkflowDefinition> {
-    const workflow = createEmptyWorkflow(name);
+  async create(name: string, initialNodes?: WorkflowNodeDefinition[]): Promise<WorkflowDefinition> {
+    const workflow = createEmptyWorkflow(name, initialNodes);
     this.workflows.set(workflow.id, workflow);
     return workflow;
   }

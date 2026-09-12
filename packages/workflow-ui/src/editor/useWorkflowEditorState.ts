@@ -42,6 +42,7 @@ export function useWorkflowEditorState(workflowId: string) {
   const [nodes, setNodes, onNodesChange] = useNodesState<WorkflowFlowNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<WorkflowFlowEdge>([]);
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [active, setActive] = useState(false);
   const [createdAt, setCreatedAt] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -60,6 +61,7 @@ export function useWorkflowEditorState(workflowId: string) {
         return;
       }
       setName(workflow.name);
+      setDescription(workflow.description ?? "");
       setActive(workflow.active);
       setCreatedAt(workflow.createdAt);
       setNodes(toFlowNodes(workflow.nodes));
@@ -77,6 +79,7 @@ export function useWorkflowEditorState(workflowId: string) {
     return {
       id: workflowId,
       name,
+      description: description || undefined,
       active,
       createdAt,
       updatedAt: new Date().toISOString(),
@@ -95,7 +98,7 @@ export function useWorkflowEditorState(workflowId: string) {
         sourceOutput: edge.sourceHandle ?? undefined,
       })),
     };
-  }, [active, createdAt, edges, name, nodes, workflowId]);
+  }, [active, createdAt, description, edges, name, nodes, workflowId]);
 
   const onConnect = useCallback(
     (connection: Connection) => {
@@ -260,6 +263,8 @@ export function useWorkflowEditorState(workflowId: string) {
     updateNodeParameter,
     name,
     setName,
+    description,
+    setDescription,
     active,
     toggleActive,
     isLoading,

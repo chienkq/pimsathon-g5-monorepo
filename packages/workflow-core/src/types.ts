@@ -81,6 +81,8 @@ export interface WorkflowConnection {
 export interface WorkflowDefinition {
   id: string;
   name: string;
+  /** Free-text explanation of what the workflow does, shown wherever a workflow is referenced outside its own editor (e.g. the Related Workflows list on a Work Item). */
+  description?: string;
   nodes: WorkflowNodeDefinition[];
   connections: WorkflowConnection[];
   active: boolean;
@@ -93,6 +95,7 @@ export interface WorkflowDefinition {
 export interface WorkflowSummary {
   id: string;
   name: string;
+  description?: string;
   active: boolean;
   updatedAt: string;
   nodeCount: number;

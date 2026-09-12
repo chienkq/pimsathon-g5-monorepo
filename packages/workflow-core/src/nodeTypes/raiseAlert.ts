@@ -8,6 +8,8 @@ export interface NormalizedAlert {
   title: string;
   message: string;
   source: string;
+  /** The work item this alert relates to, when the raising workflow's input carries one. */
+  workItemId?: string;
 }
 
 /** Injected via `executeWorkflow(workflow, { services: { alertStore } })` — backend provides the real implementation. */
@@ -40,6 +42,13 @@ export const raiseAlertNodeType: NodeTypeDefinition = {
     },
     { key: "titleTemplate", label: "Title Template", type: "string", default: "{{alertTitle}}" },
     { key: "dedupeKeyField", label: "Dedupe Key Field", type: "string", default: "externalKey" },
+    {
+      key: "workItemIdField",
+      label: "Work Item Id Field (on item)",
+      type: "string",
+      default: "",
+      helpText: 'When the input item carries a work item id (e.g. "id"), links the alert back to that work item.',
+    },
     { key: "severityField", label: "Severity Field (on item)", type: "string", default: "severity" },
     {
       key: "defaultSeverity",
@@ -55,6 +64,7 @@ export const raiseAlertNodeType: NodeTypeDefinition = {
     if (!alertType) throw new Error("Raise Alert node requires an Alert Type.");
     const titleTemplate = String(parameters.titleTemplate ?? "{{alertTitle}}");
     const dedupeKeyField = String(parameters.dedupeKeyField ?? "externalKey");
+    const workItemIdField = String(parameters.workItemIdField ?? "");
     const severityField = String(parameters.severityField ?? "severity");
     const defaultSeverity = String(parameters.defaultSeverity ?? "medium") as AlertSeverity;
 
@@ -66,12 +76,14 @@ export const raiseAlertNodeType: NodeTypeDefinition = {
         const dedupeKeyValue = String(item.json[dedupeKeyField] ?? "");
         const severity = (item.json[severityField] as AlertSeverity | undefined) ?? defaultSeverity;
         const title = renderTemplate(titleTemplate, item.json);
+        const workItemId = workItemIdField ? String(item.json[workItemIdField] ?? "") || undefined : undefined;
         return alertStore.upsertAlert({
           dedupeKey: `${alertType}:${dedupeKeyValue}`,
           severity,
           title,
           message: title,
           source: alertType,
+          workItemId,
         });
       })
     );

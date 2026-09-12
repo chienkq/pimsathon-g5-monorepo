@@ -7,7 +7,7 @@ import type { NodeExecutionData, NodeTypeDefinition } from "../types.js";
  * schema (and risk breaking Jira Sync / Alert Engine, which depend on its exact shape), this is a
  * separate, deliberately generic pair of nodes for that one different shape of record.
  */
-export type AnalysisSubjectType = "cycle" | "module";
+export type AnalysisSubjectType = "cycle" | "module" | "workItem";
 export type AnalysisStatus = "on_track" | "at_risk" | "off_track";
 export type AnalysisAlertSeverity = "low" | "medium" | "high" | "critical";
 
@@ -78,6 +78,7 @@ export const analysisResultSaveNodeType: NodeTypeDefinition = {
       options: [
         { label: "Cycle", value: "cycle" },
         { label: "Module", value: "module" },
+        { label: "Work Item", value: "workItem" },
       ],
     },
   ],
@@ -110,6 +111,7 @@ export const analysisResultQueryNodeType: NodeTypeDefinition = {
       options: [
         { label: "Cycle", value: "cycle" },
         { label: "Module", value: "module" },
+        { label: "Work Item", value: "workItem" },
       ],
     },
     {

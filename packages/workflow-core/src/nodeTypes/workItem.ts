@@ -38,6 +38,8 @@ export interface PlatformWorkItem {
   /** Set only for work items auto-created/updated from an external tracker (e.g. Jira sync) — see workItems.externalProvider/externalKey in workflow-db's schema. Lets a workflow look up "is there already a work item for this Jira issue / GitHub PR" before deciding to Create vs Update. */
   externalProvider?: string;
   externalKey?: string;
+  /** Free-text scratchpad AI/humans write to so future AI runs (e.g. a health-check workflow) can read a work item's context fast, without re-deriving it. */
+  aiNote?: string;
 }
 
 export type WorkItemInput = Omit<PlatformWorkItem, "id" | "number" | "projectCode" | "key">;
@@ -151,6 +153,13 @@ export const workItemNodeType: NodeTypeDefinition = {
       default: "",
       helpText: "Used by List (filter), Create, Update. e.g. a Jira issue key.",
     },
+    {
+      key: "aiNote",
+      label: "AI Note",
+      type: "string",
+      default: "",
+      helpText: "Used by Create, Update. Free-text scratchpad for AI/humans to leave context on this item.",
+    },
   ],
   async execute({ parameters, services }) {
     const workItemStore = services?.workItemStore as WorkItemStoreService | undefined;
@@ -200,6 +209,7 @@ export const workItemNodeType: NodeTypeDefinition = {
               : Number(parameters.storyPoints),
           externalProvider: parameters.externalProvider ? String(parameters.externalProvider) : undefined,
           externalKey: parameters.externalKey ? String(parameters.externalKey) : undefined,
+          aiNote: parameters.aiNote ? String(parameters.aiNote) : undefined,
         });
         return { branches: { main: [toItem(created)] } };
       }
@@ -221,6 +231,7 @@ export const workItemNodeType: NodeTypeDefinition = {
           patch.storyPoints = Number(parameters.storyPoints);
         if (parameters.externalProvider) patch.externalProvider = String(parameters.externalProvider);
         if (parameters.externalKey) patch.externalKey = String(parameters.externalKey);
+        if (parameters.aiNote) patch.aiNote = String(parameters.aiNote);
         const updated = await workItemStore.update(id, patch);
         return { branches: { main: [toItem(updated)] } };
       }

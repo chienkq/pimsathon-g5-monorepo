@@ -1,4 +1,4 @@
-import type { WorkflowDefinition, WorkflowSummary } from "../types.js";
+import type { WorkflowDefinition, WorkflowNodeDefinition, WorkflowSummary } from "../types.js";
 
 /**
  * Storage abstraction for workflows. Swap the implementation (e.g. for an HTTP-backed one talking
@@ -8,19 +8,20 @@ import type { WorkflowDefinition, WorkflowSummary } from "../types.js";
 export interface WorkflowRepository {
   list(): Promise<WorkflowSummary[]>;
   get(id: string): Promise<WorkflowDefinition | undefined>;
-  create(name: string): Promise<WorkflowDefinition>;
+  /** `initialNodes`, when given, replaces the default single-`webhook`-node starting graph (e.g. seeding a new workflow with a `workItem` node from the WorkItem detail panel's "Create workflow" shortcut). */
+  create(name: string, initialNodes?: WorkflowNodeDefinition[]): Promise<WorkflowDefinition>;
   save(workflow: WorkflowDefinition): Promise<WorkflowDefinition>;
   remove(id: string): Promise<void>;
   duplicate(id: string): Promise<WorkflowDefinition>;
   setActive(id: string, active: boolean): Promise<WorkflowDefinition>;
 }
 
-export function createEmptyWorkflow(name: string): WorkflowDefinition {
+export function createEmptyWorkflow(name: string, initialNodes?: WorkflowNodeDefinition[]): WorkflowDefinition {
   const now = new Date().toISOString();
   return {
     id: crypto.randomUUID(),
     name,
-    nodes: [
+    nodes: initialNodes ?? [
       {
         id: crypto.randomUUID(),
         type: "webhook",
@@ -40,6 +41,7 @@ export function toWorkflowSummary(workflow: WorkflowDefinition): WorkflowSummary
   return {
     id: workflow.id,
     name: workflow.name,
+    description: workflow.description,
     active: workflow.active,
     updatedAt: workflow.updatedAt,
     nodeCount: workflow.nodes.length,

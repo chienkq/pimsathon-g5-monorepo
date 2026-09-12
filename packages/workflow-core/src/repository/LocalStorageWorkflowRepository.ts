@@ -1,4 +1,4 @@
-import type { WorkflowDefinition, WorkflowSummary } from "../types.js";
+import type { WorkflowDefinition, WorkflowNodeDefinition, WorkflowSummary } from "../types.js";
 import { createEmptyWorkflow, toWorkflowSummary, type WorkflowRepository } from "./WorkflowRepository.js";
 
 const STORAGE_KEY = "pimsathon.workflows.v1";
@@ -40,9 +40,9 @@ export class LocalStorageWorkflowRepository implements WorkflowRepository {
     return this.readAll().get(id);
   }
 
-  async create(name: string): Promise<WorkflowDefinition> {
+  async create(name: string, initialNodes?: WorkflowNodeDefinition[]): Promise<WorkflowDefinition> {
     const workflows = this.readAll();
-    const workflow = createEmptyWorkflow(name);
+    const workflow = createEmptyWorkflow(name, initialNodes);
     workflows.set(workflow.id, workflow);
     this.writeAll(workflows);
     return workflow;

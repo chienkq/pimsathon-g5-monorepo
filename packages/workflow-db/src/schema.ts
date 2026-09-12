@@ -144,6 +144,8 @@ export const workItems = pgTable(
      * overwriting local edits. Null until the first conversion from a ticket.
      */
     externalSyncBase: jsonb("external_sync_base").$type<{ title: string; status: string; priority: string }>(),
+    /** Free-text scratchpad AI/humans write to so future AI runs can read a work item's context fast, without re-deriving it. Not shown to end users as a "field" of the ticket itself. */
+    aiNote: text("ai_note"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -185,6 +187,8 @@ export const alerts = pgTable(
   {
     id: text("id").primaryKey(),
     dedupeKey: text("dedupe_key").notNull(),
+    /** The work item this alert relates to, when the raising workflow's input carries one. Null for alerts not scoped to a single work item (e.g. cycle/module-level). */
+    workItemId: text("work_item_id").references(() => workItems.id, { onDelete: "set null" }),
     severity: text("severity", { enum: ["low", "medium", "high", "critical"] }).notNull(),
     title: text("title").notNull(),
     message: text("message").notNull(),
@@ -215,11 +219,12 @@ export const widgets = pgTable("widgets", {
  * One row per Analyze Cycle / Analyze Module run, for the `analysisResultSave`/`analysisResultQuery`
  * nodes — deliberately a separate table from `tickets` (not a generalization of it), since
  * that table's schema/unique-index are tuned to Jira-issue-shaped tickets and Jira Sync/Alert Engine
- * depend on that exact shape. `subjectId` is a `planning_groups.id` (a cycle or a module).
+ * depend on that exact shape. `subjectId` is a `planning_groups.id` (a cycle or a module) or, for
+ * `subjectType: "workItem"`, a `work_items.id`.
  */
 export const analysisResults = pgTable("analysis_results", {
   id: text("id").primaryKey(),
-  subjectType: text("subject_type", { enum: ["cycle", "module"] }).notNull(),
+  subjectType: text("subject_type", { enum: ["cycle", "module", "workItem"] }).notNull(),
   subjectId: text("subject_id").notNull(),
   status: text("status", { enum: ["on_track", "at_risk", "off_track"] }).notNull(),
   healthScore: integer("health_score").notNull(),

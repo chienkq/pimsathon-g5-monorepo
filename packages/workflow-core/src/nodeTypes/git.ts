@@ -13,6 +13,8 @@ import type { NodeTypeDefinition } from "../types.js";
 export interface LocalGitClientService {
   listBranches(query?: string): Promise<string[]>;
   fetch(): Promise<{ success: true }>;
+  getFileSnippet(filePath: string, startLine?: number, endLine?: number): Promise<LocalGitFileSnippet>;
+  searchCode(pattern: string, options?: { maxResults?: number; ignoreCase?: boolean }): Promise<LocalGitSearchMatch[]>;
   getStatus(): Promise<{
     currentBranch: string;
     ahead: number;
@@ -30,6 +32,22 @@ export interface LocalGitClientService {
   }): Promise<Array<{ hash: string; message: string; authorName: string; authorEmail: string; date: string }>>;
   getConfigList(): Promise<Array<{ key: string; value: string }>>;
   listProjectFiles(options?: { maxTotalBytes?: number }): Promise<LocalGitProjectFiles>;
+}
+
+/** A single file's line range, as returned by "Read File". */
+export interface LocalGitFileSnippet {
+  filePath: string;
+  startLine: number;
+  endLine: number;
+  totalLines: number;
+  content: string;
+}
+
+/** One `git grep` hit, as returned by "Search Code". */
+export interface LocalGitSearchMatch {
+  path: string;
+  line: number;
+  text: string;
 }
 
 /** One tracked file's contents, as returned by "Read Project Files". */
@@ -51,13 +69,22 @@ export interface LocalGitProjectFiles {
   truncated: boolean;
 }
 
-const ACTIONS = ["List Branches", "Fetch", "Status", "Log", "List Config", "Read Project Files"] as const;
+const ACTIONS = [
+  "List Branches",
+  "Fetch",
+  "Status",
+  "Log",
+  "List Config",
+  "Read Project Files",
+  "Search Code",
+  "Read File",
+] as const;
 
 export const gitNodeType: NodeTypeDefinition = {
   type: "git",
   displayName: "Git",
   description:
-    "Reads state from a local git checkout (branches, status, log, config, tracked file contents) and fetches remote-tracking refs — no writes to the working tree, no GitHub connection needed.",
+    "Reads state from a local git checkout (branches, status, log, config, tracked file contents, grep search) and fetches remote-tracking refs — no writes to the working tree, no GitHub connection needed.",
   group: "app",
   color: "#f05133",
   hasInput: true,
@@ -104,6 +131,47 @@ export const gitNodeType: NodeTypeDefinition = {
         "Combined size budget across all files' contents — binaries, lockfiles, and any single file over 100KB are skipped outright. Feeds into a downstream AI Agent node, so keep this within your model's context window.",
       showWhen: { key: "action", values: ["Read Project Files"] },
     },
+    {
+      key: "pattern",
+      label: "Pattern",
+      type: "string",
+      default: "",
+      helpText: "A `git grep` basic-regex pattern (case-insensitive), not a fixed string.",
+      required: true,
+      showWhen: { key: "action", values: ["Search Code"] },
+    },
+    {
+      key: "maxResults",
+      label: "Max Results",
+      type: "number",
+      default: 30,
+      showWhen: { key: "action", values: ["Search Code"] },
+    },
+    {
+      key: "filePath",
+      label: "File Path",
+      type: "string",
+      default: "",
+      helpText: "Path relative to the repository root.",
+      required: true,
+      showWhen: { key: "action", values: ["Read File"] },
+    },
+    {
+      key: "startLine",
+      label: "Start Line",
+      type: "number",
+      default: "",
+      helpText: "Leave empty for the whole file.",
+      showWhen: { key: "action", values: ["Read File"] },
+    },
+    {
+      key: "endLine",
+      label: "End Line",
+      type: "number",
+      default: "",
+      helpText: "Leave empty for the whole file.",
+      showWhen: { key: "action", values: ["Read File"] },
+    },
   ],
   async execute({ parameters, services }) {
     const action = String(parameters.action ?? "List Branches");
@@ -138,6 +206,23 @@ export const gitNodeType: NodeTypeDefinition = {
         const maxTotalSizeKb = Number(parameters.maxTotalSizeKb ?? 500) || 500;
         const result = await localGitClient.listProjectFiles({ maxTotalBytes: maxTotalSizeKb * 1024 });
         return { branches: { main: [{ json: { ...result } }] } };
+      }
+      case "Search Code": {
+        const pattern = String(parameters.pattern ?? "");
+        if (!pattern) throw new Error("Git Search Code requires a Pattern.");
+        const maxResults = Number(parameters.maxResults ?? 30) || 30;
+        const matches = await localGitClient.searchCode(pattern, { maxResults });
+        return { branches: { main: matches.map((m) => ({ json: { ...m } })) } };
+      }
+      case "Read File": {
+        const filePath = String(parameters.filePath ?? "");
+        if (!filePath) throw new Error("Git Read File requires a File Path.");
+        const startLine =
+          parameters.startLine === "" || parameters.startLine === undefined ? undefined : Number(parameters.startLine);
+        const endLine =
+          parameters.endLine === "" || parameters.endLine === undefined ? undefined : Number(parameters.endLine);
+        const snippet = await localGitClient.getFileSnippet(filePath, startLine, endLine);
+        return { branches: { main: [{ json: { ...snippet } }] } };
       }
       default:
         throw new Error(`Git: unknown action "${action}".`);

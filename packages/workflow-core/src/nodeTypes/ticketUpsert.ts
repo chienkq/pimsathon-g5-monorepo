@@ -81,7 +81,15 @@ function normalizeJiraIssue(issue: JiraIssue): NormalizedTicket {
     fixVersions: fixVersions?.map((v) => v.name).filter((n): n is string => !!n),
     labels: labels && labels.length > 0 ? labels : undefined,
     dueDate: typeof fields.duedate === "string" ? fields.duedate : undefined,
-    raw: fields,
+    // The full raw issue (all fields Jira returned, plus rendered/changelog when requested) — not just
+    // the handful of fields this normalizer reads — so nothing Jira sent is lost on conversion.
+    raw: {
+      id: issue.id,
+      key: issue.key,
+      fields,
+      ...(issue.renderedFields ? { renderedFields: issue.renderedFields } : {}),
+      ...(issue.changelog ? { changelog: issue.changelog } : {}),
+    },
   };
 }
 

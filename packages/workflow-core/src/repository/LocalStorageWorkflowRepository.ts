@@ -58,7 +58,6 @@ export class LocalStorageWorkflowRepository implements WorkflowRepository {
 
   async remove(id: string): Promise<void> {
     const workflows = this.readAll();
-    if (workflows.get(id)?.isSystem) throw new Error(`Workflow ${id} is a system workflow and cannot be deleted`);
     workflows.delete(id);
     this.writeAll(workflows);
   }

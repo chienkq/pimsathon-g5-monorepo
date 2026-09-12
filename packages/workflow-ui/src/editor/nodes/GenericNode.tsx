@@ -8,6 +8,7 @@ const STATUS_LABEL: Record<string, string> = {
   success: "Success",
   error: "Error",
   skipped: "Skipped",
+  cancelled: "Cancelled",
 };
 
 export function GenericNode({ data, selected }: NodeProps<WorkflowFlowNode>) {
@@ -16,7 +17,10 @@ export function GenericNode({ data, selected }: NodeProps<WorkflowFlowNode>) {
   const isTrigger = nodeType.isTrigger === true;
 
   return (
-    <div className={`wf-node-wrapper ${selected ? "wf-node-wrapper--selected" : ""}`}>
+    <div
+      className={`wf-node-wrapper ${selected ? "wf-node-wrapper--selected" : ""} ${data.isToolbarVisible ? "wf-node-wrapper--toolbar-visible" : ""}`}
+      onMouseEnter={() => data.onHoverNode?.()}
+    >
       {(data.onDelete || data.onToggleDisabled) && (
         <div className="wf-node-toolbar">
           {data.onToggleDisabled && (
@@ -48,7 +52,16 @@ export function GenericNode({ data, selected }: NodeProps<WorkflowFlowNode>) {
         </div>
       )}
 
-      {nodeType.hasInput && <Handle type="target" position={Position.Left} id="main" className="wf-handle" />}
+      {nodeType.hasInput &&
+        (nodeType.inputs ?? ["main"]).map((input, index, inputs) => {
+          const top = `${((index + 1) / (inputs.length + 1)) * 100}%`;
+          return (
+            <div key={input} className="wf-node__input" style={{ top }}>
+              {inputs.length > 1 && <span className="wf-node__handle-label wf-node__handle-label--input">{input}</span>}
+              <Handle type="target" position={Position.Left} id={input} className="wf-handle" style={{ top: "50%" }} />
+            </div>
+          );
+        })}
 
       <div
         className={`wf-node ${isTrigger ? "wf-node--trigger" : ""} ${statusClass} ${data.disabled ? "wf-node--disabled" : ""}`}

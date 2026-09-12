@@ -77,6 +77,53 @@ describe("executeWorkflow", () => {
     expect(result.nodeResults.downstream.status).toBe("skipped");
   });
 
+  it("stops before the next node once the signal is aborted", async () => {
+    const trigger = node("trigger", "webhook");
+    const code = node("set", "code", { code: 'return [{ greeting: "hi" }];' });
+    const downstream = node("downstream", "merge");
+    const controller = new AbortController();
+    controller.abort();
+
+    const result = await executeWorkflow(
+      workflow({
+        nodes: [trigger, code, downstream],
+        connections: [
+          { id: "c1", source: "trigger", target: "set" },
+          { id: "c2", source: "set", target: "downstream" },
+        ],
+      }),
+      { signal: controller.signal }
+    );
+
+    expect(result.status).toBe("cancelled");
+    expect(result.nodeResults).toEqual({});
+  });
+
+  it('resolves $node["Name"] expressions against a farther ancestor, not just the direct predecessor', async () => {
+    const source = { ...node("source", "code", { code: 'return [{ tag: "from-source" }];' }), name: "Source" };
+    const middle = { ...node("middle", "code", { code: 'return [{ tag: "from-middle" }];' }), name: "Middle" };
+    const ifNode = {
+      ...node("if", "if", { field: "tag", operator: "equals", value: '={{ $node["Source"].json.tag }}' }),
+      name: "If",
+    };
+
+    const result = await executeWorkflow(
+      workflow({
+        nodes: [source, middle, ifNode],
+        connections: [
+          { id: "c1", source: "source", target: "middle" },
+          { id: "c2", source: "middle", target: "if" },
+        ],
+      })
+    );
+
+    // The If node's own input comes from "middle" (tag: "from-middle"), but its `value` expression
+    // reaches back past "middle" to "source"'s output — so comparing the input's own "tag" field
+    // against that expression only matches if the expression actually resolved to "from-source".
+    expect(result.nodeResults.if.branches?.false).toEqual([{ json: { tag: "from-middle" } }]);
+    expect(result.nodeResults.if.branches?.true).toEqual([]);
+  });
+
   it("throws a clear error for cyclic workflows", async () => {
     const a = node("a", "merge");
     const b = node("b", "merge");

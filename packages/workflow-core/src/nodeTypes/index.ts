@@ -1,8 +1,10 @@
 import type { NodeTypeDefinition, NodeTypeMeta } from "../types.js";
 import { aggregateNodeType } from "./aggregate.js";
 import { analysisResultQueryNodeType, analysisResultSaveNodeType } from "./analysisResult.js";
+import { analyzeWorkItemAuthenticityNodeType } from "./analyzeWorkItemAuthenticity.js";
 import { metisSoftwareNodeType, sonarQubeNodeType } from "./appActionNodes.js";
 import { codeNodeType } from "./code.js";
+import { codeIndexNodeType, codeSearchNodeType } from "./codeSearch.js";
 import {
   chatNodeType,
   discordNodeType,
@@ -28,6 +30,7 @@ import { planningGroupNodeType } from "./planningGroup.js";
 import { publishWidgetNodeType } from "./publishWidget.js";
 import { raiseAlertNodeType } from "./raiseAlert.js";
 import { sendMessageToAiAgentNodeType } from "./sendMessageToAiAgent.js";
+import { sendMessageToAgentNodeType } from "./sendMessageToAgent.js";
 import { switchNodeType } from "./switch.js";
 import { waitNodeType } from "./wait.js";
 import { webhookNodeType } from "./webhook.js";
@@ -36,6 +39,8 @@ import { workItemNodeType } from "./workItem.js";
 export const nodeTypeRegistry: Record<string, NodeTypeDefinition> = {
   // AI
   [sendMessageToAiAgentNodeType.type]: sendMessageToAiAgentNodeType,
+  [sendMessageToAgentNodeType.type]: sendMessageToAgentNodeType,
+  [analyzeWorkItemAuthenticityNodeType.type]: analyzeWorkItemAuthenticityNodeType,
   // Action in Apps
   [metisSoftwareNodeType.type]: metisSoftwareNodeType,
   [sonarQubeNodeType.type]: sonarQubeNodeType,
@@ -54,6 +59,8 @@ export const nodeTypeRegistry: Record<string, NodeTypeDefinition> = {
   [gitCacheUpsertNodeType.type]: gitCacheUpsertNodeType,
   [analysisResultSaveNodeType.type]: analysisResultSaveNodeType,
   [analysisResultQueryNodeType.type]: analysisResultQueryNodeType,
+  [codeIndexNodeType.type]: codeIndexNodeType,
+  [codeSearchNodeType.type]: codeSearchNodeType,
   // Flow
   [ifNodeType.type]: ifNodeType,
   [loopNodeType.type]: loopNodeType,
@@ -125,8 +132,11 @@ export {
   aggregateNodeType,
   analysisResultQueryNodeType,
   analysisResultSaveNodeType,
+  analyzeWorkItemAuthenticityNodeType,
   chatNodeType,
   codeNodeType,
+  codeIndexNodeType,
+  codeSearchNodeType,
   discordNodeType,
   emailNodeType,
   ticketQueryNodeType,
@@ -147,6 +157,7 @@ export {
   publishWidgetNodeType,
   raiseAlertNodeType,
   sendMessageToAiAgentNodeType,
+  sendMessageToAgentNodeType,
   slackNodeType,
   sonarQubeNodeType,
   switchNodeType,
@@ -160,10 +171,12 @@ export {
 export type { TicketStoreService, NormalizedTicket, StoredTicket, TicketFilter } from "./ticketUpsert.js";
 export type { JiraClientService, JiraIssue } from "./jira.js";
 export type { GitBranch, GitClientService, GitCommit, GitIssue, GitPullRequest, GitRepositoryInfo } from "./github.js";
-export type { LocalGitClientService, LocalGitProjectFiles } from "./git.js";
+export type { LocalGitClientService, LocalGitFileSnippet, LocalGitProjectFiles, LocalGitSearchMatch } from "./git.js";
 export type { AiAgentLlmService } from "./sendMessageToAiAgent.js";
+export type { SendMessageToAgentService } from "./sendMessageToAgent.js";
 export type { GitCacheStoreService } from "./gitCacheUpsert.js";
 export type { WebhookRequestPayload } from "./webhook.js";
+export type { CodeChunkRecord, CodeIndexService, CodeSearchResult } from "./codeSearch.js";
 export type {
   AnalysisAlertSeverity,
   AnalysisResult,

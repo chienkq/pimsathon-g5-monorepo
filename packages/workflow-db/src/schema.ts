@@ -1,5 +1,38 @@
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
-import { boolean, doublePrecision, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  customType,
+  doublePrecision,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
+
+/**
+ * pgvector's `vector(N)` column type — drizzle-orm has no built-in support for it, so this defines
+ * the SQL type text directly (requires `CREATE EXTENSION vector`, added by this table's migration)
+ * and (de)serializes to/from pgvector's `[0.1,0.2,...]` literal format. `N` must match the embedding
+ * model's output dimensionality (see `EMBEDDING_VECTOR_DIMENSIONS` below) — changing the configured
+ * embedding model to one with a different dimension count requires a new migration to alter the column.
+ * 1024 matches the multilingual-e5-large / bge-m3 family (this repo's currently available embedding
+ * models); was 768 (nomic-embed-text, Ollama) before migration 0018.
+ */
+export const EMBEDDING_VECTOR_DIMENSIONS = 1024;
+
+const vector = customType<{ data: number[]; driverData: string }>({
+  dataType() {
+    return `vector(${EMBEDDING_VECTOR_DIMENSIONS})`;
+  },
+  toDriver(value) {
+    return `[${value.join(",")}]`;
+  },
+  fromDriver(value) {
+    return value.slice(1, -1).split(",").filter(Boolean).map(Number);
+  },
+});
 
 /** Mirrors workflow-core's `WorkflowDefinition` so the server can persist/schedule workflows independently of the browser's LocalStorageWorkflowRepository. */
 export const workflows = pgTable("workflows", {
@@ -19,7 +52,7 @@ export const workflowRuns = pgTable("workflow_runs", {
   workflowId: text("workflow_id")
     .notNull()
     .references(() => workflows.id, { onDelete: "cascade" }),
-  status: text("status", { enum: ["running", "success", "error"] }).notNull(),
+  status: text("status", { enum: ["running", "success", "error", "cancelled"] }).notNull(),
   trigger: text("trigger", { enum: ["schedule", "webhook", "manual"] }).notNull(),
   startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
   finishedAt: timestamp("finished_at", { withTimezone: true }),
@@ -79,15 +112,23 @@ export const credentials = pgTable("credentials", {
 /**
  * Named LLM setups (provider + model + generation params), configurable from the "LLM Settings"
  * screen (Automation sidebar) and referenced by AI-flavored nodes (e.g. Send Message to AI Agent)
- * instead of each node embedding its own provider credentials. `apiKeyEncrypted` mirrors
- * `credentials.secretEncrypted` (AES-256-GCM), and is null for providers that don't need a key
- * (Ollama). `extra` holds provider-specific, non-secret connection fields that don't warrant their
- * own column (OpenAI's `organization`, Azure's `deploymentName`/`apiVersion`). Exactly one row may
- * have `isDefault: true` at a time — enforced in `llmConfigStore.ts`, not at the DB level.
+ * — or, for `kind: "embedding"` rows, by Code Search — instead of each node/feature embedding its
+ * own provider credentials. `apiKeyEncrypted` mirrors `credentials.secretEncrypted` (AES-256-GCM),
+ * and is null for providers that don't need a key (Ollama). `extra` holds provider-specific,
+ * non-secret connection fields that don't warrant their own column (OpenAI's `organization`, Azure's
+ * `deploymentName`/`apiVersion`, and — for embedding configs — `queryPrefix`/`passagePrefix`, e.g.
+ * e5's `"query: "`/`"passage: "` instruction prefixes). `dimension` is only meaningful for `kind:
+ * "embedding"` rows and must match `EMBEDDING_VECTOR_DIMENSIONS` for Code Search to actually use one
+ * (pgvector's column width is fixed at the schema level, not per-row). Exactly one `kind: "chat"` row
+ * and one `kind: "embedding"` row may have `isDefault: true` at a time — enforced in
+ * `llmConfigStore.ts`, not at the DB level.
  */
 export const llmConfigs = pgTable("llm_configs", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
+  kind: text("kind", { enum: ["chat", "embedding"] })
+    .notNull()
+    .default("chat"),
   provider: text("provider").notNull(),
   model: text("model").notNull(),
   apiKeyEncrypted: text("api_key_encrypted"),
@@ -98,7 +139,55 @@ export const llmConfigs = pgTable("llm_configs", {
   topP: doublePrecision("top_p"),
   timeoutMs: integer("timeout_ms").notNull().default(60000),
   systemPrompt: text("system_prompt"),
+  /** Embedding output width, e.g. 1024 for multilingual-e5-large/bge-m3. Null for `kind: "chat"` rows. */
+  dimension: integer("dimension"),
   isDefault: boolean("is_default").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Reusable AI Agents (Automation → AI Agents) — just a Markdown "system prompt" plus which
+ * `llm_configs` row to run on and which `agent_tools` rows it's allowed to call mid-conversation.
+ * Kept deliberately simple (no memory, no multi-agent orchestration): the "Send Message to Agent"
+ * node picks one of these by id (a live dropdown) instead of a node embedding its own prompt/tool
+ * wiring, unlike the older "Send Message to AI Agent" node which points straight at an `llm_configs`
+ * row by name.
+ */
+export const aiAgents = pgTable("ai_agents", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  markdown: text("markdown").notNull().default(""),
+  llmConfigId: text("llm_config_id").references(() => llmConfigs.id, { onDelete: "set null" }),
+  toolIds: jsonb("tool_ids").$type<string[]>().notNull().default([]),
+  /** Cap on tool-call round-trips one agent turn may take (see `MAX_TOOL_ITERATIONS` fallback in
+   *  `llmAgentRunner.ts`) before it's treated as stuck — configurable per-agent since a search-heavy
+   *  agent (e.g. workitem-authenticity-analyst) may legitimately need more than a quick lookup agent. */
+  maxToolIterations: integer("max_tool_iterations").notNull().default(8),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * A callable JS function an AI Agent can invoke mid-conversation (OpenAI/Anthropic-style tool/function
+ * calling) — same "paste JavaScript" trust model as the `code` node's `new Function` (see
+ * `agentToolRunner.ts`), just run server-side inside the agent's tool loop instead of in the browser,
+ * since tool calls happen as part of the backend's own LLM request/response loop, not a workflow
+ * node's `execute()`. `parametersSchema` is a JSON Schema `object` describing the tool's arguments,
+ * sent to the provider as-is so it knows how to call the tool; `code` receives those arguments as
+ * `params` and may be `async`/use `fetch`.
+ */
+export const agentTools = pgTable("agent_tools", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull().default(""),
+  parametersSchema: jsonb("parameters_schema")
+    .$type<Record<string, unknown>>()
+    .notNull()
+    .default({ type: "object", properties: {} }),
+  code: text("code")
+    .notNull()
+    .default("// `params` holds the arguments the model supplied, matching Parameters Schema.\nreturn {};"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -190,6 +279,14 @@ export const workItems = pgTable(
      * overwriting local edits. Null until the first conversion from a ticket.
      */
     externalSyncBase: jsonb("external_sync_base").$type<{ title: string; status: string; priority: string }>(),
+    /**
+     * Full raw payload from the source tracker at the time of the last conversion/sync (mirrors
+     * `tickets.raw` — see ticketUpsert.ts's `NormalizedTicket.raw`), kept on the work item itself so
+     * fields with no structural home here (real Jira description, comments, attachments, worklog,
+     * changelog, custom fields) aren't lost once the `tickets` staging row is superseded by a newer sync.
+     * Null for work items authored directly in the app or synced from a provider that doesn't set it.
+     */
+    jiraRaw: jsonb("jira_raw").$type<Record<string, unknown>>(),
     /** Free-text scratchpad AI/humans write to so future AI runs can read a work item's context fast, without re-deriving it. Not shown to end users as a "field" of the ticket itself. */
     aiNote: text("ai_note"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -416,4 +513,25 @@ export const syncEvents = pgTable("sync_events", {
   message: text("message").notNull(),
   kind: text("kind", { enum: ["success", "error", "info"] }).notNull(),
   at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Code Search's vector index — one row per function/class/method chunk (cut by tree-sitter at
+ * TS/JS function/class boundaries, not fixed line counts), embedded with whichever `llm_configs`
+ * row (`kind: "embedding"`) is selected in Code Search settings (see `app_settings` row
+ * `"code-search"`) so a ticket's description/AC can be embedded the same way and matched by cosine
+ * distance (`embedding <=> ...`, pgvector's `<=>` operator).
+ * Reindexing today is a full wipe-and-reinsert of the whole configured Local Git repo, not
+ * incremental per file.
+ */
+export const codeChunks = pgTable("code_chunks", {
+  id: text("id").primaryKey(),
+  filePath: text("file_path").notNull(),
+  symbolName: text("symbol_name").notNull(),
+  kind: text("kind", { enum: ["function", "method", "class", "arrow"] }).notNull(),
+  startLine: integer("start_line").notNull(),
+  endLine: integer("end_line").notNull(),
+  content: text("content").notNull(),
+  embedding: vector("embedding").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

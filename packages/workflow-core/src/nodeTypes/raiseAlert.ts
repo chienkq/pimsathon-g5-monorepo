@@ -41,6 +41,14 @@ export const raiseAlertNodeType: NodeTypeDefinition = {
       required: true,
     },
     { key: "titleTemplate", label: "Title Template", type: "string", default: "{{alertTitle}}" },
+    {
+      key: "messageTemplate",
+      label: "Message Template",
+      type: "string",
+      default: "",
+      helpText:
+        "Optional longer body for the alert (e.g. reasoning/details). Falls back to the rendered Title Template when left empty.",
+    },
     { key: "dedupeKeyField", label: "Dedupe Key Field", type: "string", default: "externalKey" },
     {
       key: "workItemIdField",
@@ -63,6 +71,7 @@ export const raiseAlertNodeType: NodeTypeDefinition = {
     const alertType = String(parameters.alertType ?? "");
     if (!alertType) throw new Error("Raise Alert node requires an Alert Type.");
     const titleTemplate = String(parameters.titleTemplate ?? "{{alertTitle}}");
+    const messageTemplate = String(parameters.messageTemplate ?? "");
     const dedupeKeyField = String(parameters.dedupeKeyField ?? "externalKey");
     const workItemIdField = String(parameters.workItemIdField ?? "");
     const severityField = String(parameters.severityField ?? "severity");
@@ -76,12 +85,13 @@ export const raiseAlertNodeType: NodeTypeDefinition = {
         const dedupeKeyValue = String(item.json[dedupeKeyField] ?? "");
         const severity = (item.json[severityField] as AlertSeverity | undefined) ?? defaultSeverity;
         const title = renderTemplate(titleTemplate, item.json);
+        const message = messageTemplate ? renderTemplate(messageTemplate, item.json) : title;
         const workItemId = workItemIdField ? String(item.json[workItemIdField] ?? "") || undefined : undefined;
         return alertStore.upsertAlert({
           dedupeKey: `${alertType}:${dedupeKeyValue}`,
           severity,
           title,
-          message: title,
+          message,
           source: alertType,
           workItemId,
         });

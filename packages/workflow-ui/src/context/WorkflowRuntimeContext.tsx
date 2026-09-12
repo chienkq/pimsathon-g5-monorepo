@@ -2,6 +2,7 @@ import {
   LocalWorkflowRuntime,
   type NodeTypeMeta,
   type WorkflowRuntime,
+  type WorkflowRuntimeAiAgentSummary,
   type WorkflowRuntimeProjectSummary,
 } from "@chienkq/workflow-core";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
@@ -9,6 +10,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 const WorkflowRuntimeContext = createContext<WorkflowRuntime | null>(null);
 const NodeTypesContext = createContext<NodeTypeMeta[] | null>(null);
 const ProjectsContext = createContext<WorkflowRuntimeProjectSummary[]>([]);
+const AiAgentsContext = createContext<WorkflowRuntimeAiAgentSummary[]>([]);
 
 export interface WorkflowRuntimeProviderProps {
   /** Defaults to `LocalWorkflowRuntime` (in-browser, no real integrations). Pass an HTTP-backed one to run against a real backend. */
@@ -25,6 +27,7 @@ export function WorkflowRuntimeProvider({ runtime, children }: WorkflowRuntimePr
   const resolvedRuntime = useMemo<WorkflowRuntime>(() => runtime ?? new LocalWorkflowRuntime(), [runtime]);
   const [nodeTypes, setNodeTypes] = useState<NodeTypeMeta[]>([]);
   const [projects, setProjects] = useState<WorkflowRuntimeProjectSummary[]>([]);
+  const [aiAgents, setAiAgents] = useState<WorkflowRuntimeAiAgentSummary[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,10 +49,22 @@ export function WorkflowRuntimeProvider({ runtime, children }: WorkflowRuntimePr
     };
   }, [resolvedRuntime]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void resolvedRuntime.listAiAgents?.().then((loaded) => {
+      if (!cancelled) setAiAgents(loaded);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedRuntime]);
+
   return (
     <WorkflowRuntimeContext.Provider value={resolvedRuntime}>
       <NodeTypesContext.Provider value={nodeTypes}>
-        <ProjectsContext.Provider value={projects}>{children}</ProjectsContext.Provider>
+        <ProjectsContext.Provider value={projects}>
+          <AiAgentsContext.Provider value={aiAgents}>{children}</AiAgentsContext.Provider>
+        </ProjectsContext.Provider>
       </NodeTypesContext.Provider>
     </WorkflowRuntimeContext.Provider>
   );
@@ -98,4 +113,9 @@ export function useNodeType(type: string): NodeTypeMeta {
 /** The live project list, once loaded — empty under `LocalWorkflowRuntime` or before the fetch resolves. */
 export function useProjects(): WorkflowRuntimeProjectSummary[] {
   return useContext(ProjectsContext);
+}
+
+/** The live AI Agent catalog, once loaded — empty under `LocalWorkflowRuntime` or before the fetch resolves. */
+export function useAiAgents(): WorkflowRuntimeAiAgentSummary[] {
+  return useContext(AiAgentsContext);
 }

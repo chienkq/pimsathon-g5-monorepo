@@ -57,6 +57,13 @@ export interface ParameterField {
   options?: ParameterFieldOption[];
   /** Only used when `type === "filter"` — the field names the user can pick as a condition's left side. */
   filterFields?: FilterFieldOption[];
+  /**
+   * Only meaningful when `type === "select"` — names a runtime-fetched source of options instead of a
+   * static `options` list, e.g. `"aiAgents"` for the live AI Agent catalog (Settings → AI Agents).
+   * Resolved client-side by whatever consumes this field (see workflow-ui's `useAiAgents()`), kept as
+   * a plain string (not a function) since `ParameterField` is served as JSON over `/api/node-types`.
+   */
+  dynamicOptions?: "aiAgents";
   /** Config-time validation: node shows an "issues" warning while this field is empty. */
   required?: boolean;
   /** Only rendered/validated when another field on the same node currently holds one of these values (e.g. show "Title" only when `action` is "Create" or "Update"). */
@@ -66,9 +73,23 @@ export interface ParameterField {
 /** n8n-style node-creator categories (matches n8n's real grouping, not its literal category labels). */
 export type NodeGroup = "ai" | "app" | "flow" | "core" | "humanReview" | "data" | "platform";
 
+/** One incoming connection's items, tagged with the upstream node it came from (see `NodeExecuteContext.inputs`). */
+export interface NodeExecuteInputGroup {
+  sourceNodeName: string;
+  items: NodeExecutionData[];
+}
+
 export interface NodeExecuteContext {
   parameters: Record<string, unknown>;
   input: NodeExecutionData[];
+  /**
+   * Same items as `input`, grouped by incoming connection (in connection order) instead of
+   * flattened, each group tagged with its source node's name — lets a node distinguish "items
+   * from my 1st input" vs "items from my 2nd input" (e.g. `merge`'s combine mode, keyed by source
+   * node name). Only populated by `executeWorkflow` (full workflow runs); undefined for
+   * single-node test execution, where nodes should fall back to treating `input` as one group.
+   */
+  inputs?: NodeExecuteInputGroup[];
   /** Host-injected integrations (DB clients, API clients) — undefined in the browser engine, provided by backend. */
   services?: Record<string, unknown>;
 }
@@ -86,6 +107,12 @@ export interface NodeTypeDefinition {
   /** Hex color used for the node's header/border in the canvas. */
   color: string;
   hasInput: boolean;
+  /**
+   * Named input handles, in handle display order. Defaults to a single `["main"]` handle when
+   * omitted — only nodes that need to keep multiple incoming connections distinct (e.g. `merge`'s
+   * "Input 1"/"Input 2") declare more than one.
+   */
+  inputs?: string[];
   /** Renders with the pill-shaped trigger silhouette and is offered in "what starts this workflow" mode. */
   isTrigger?: boolean;
   /** Branch names, in handle display order. */
@@ -117,6 +144,8 @@ export interface WorkflowConnection {
   /** Source branch name; defaults to "main" when omitted. */
   sourceOutput?: string;
   target: string;
+  /** Target input handle name (see `NodeTypeDefinition.inputs`); defaults to "main" when omitted. */
+  targetInput?: string;
 }
 
 export interface WorkflowDefinition {

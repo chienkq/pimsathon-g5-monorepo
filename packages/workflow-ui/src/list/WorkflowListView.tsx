@@ -1,9 +1,32 @@
 import type { WorkflowSummary } from "@chienkq/workflow-core";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useWorkflowRepository } from "../context/WorkflowRepositoryContext.js";
 
 export interface WorkflowListViewProps {
   onOpenWorkflow: (workflowId: string) => void;
+}
+
+type SortKey = "name" | "status" | "nodeCount" | "updatedAt";
+type SortDirection = "asc" | "desc";
+
+const SORT_COLUMNS: { key: SortKey; label: string }[] = [
+  { key: "name", label: "Name" },
+  { key: "status", label: "Status" },
+  { key: "nodeCount", label: "Nodes" },
+  { key: "updatedAt", label: "Updated" },
+];
+
+function compareWorkflows(a: WorkflowSummary, b: WorkflowSummary, key: SortKey): number {
+  switch (key) {
+    case "name":
+      return a.name.localeCompare(b.name);
+    case "status":
+      return Number(a.active) - Number(b.active);
+    case "nodeCount":
+      return a.nodeCount - b.nodeCount;
+    case "updatedAt":
+      return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+  }
 }
 
 export function WorkflowListView({ onOpenWorkflow }: WorkflowListViewProps) {
@@ -11,6 +34,26 @@ export function WorkflowListView({ onOpenWorkflow }: WorkflowListViewProps) {
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [newWorkflowName, setNewWorkflowName] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("updatedAt");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
+  const handleSort = useCallback(
+    (key: SortKey) => {
+      if (key === sortKey) {
+        setSortDirection((direction) => (direction === "asc" ? "desc" : "asc"));
+      } else {
+        setSortKey(key);
+        setSortDirection("asc");
+      }
+    },
+    [sortKey]
+  );
+
+  const sortedWorkflows = useMemo(() => {
+    const sorted = [...workflows].sort((a, b) => compareWorkflows(a, b, sortKey));
+    if (sortDirection === "desc") sorted.reverse();
+    return sorted;
+  }, [workflows, sortKey, sortDirection]);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -40,8 +83,7 @@ export function WorkflowListView({ onOpenWorkflow }: WorkflowListViewProps) {
   );
 
   const handleRemove = useCallback(
-    async (id: string, name: string, isSystem?: boolean) => {
-      if (isSystem) return;
+    async (id: string, name: string) => {
       if (!window.confirm(`Delete workflow "${name}"? This cannot be undone.`)) return;
       await repository.remove(id);
       await refresh();
@@ -85,15 +127,21 @@ export function WorkflowListView({ onOpenWorkflow }: WorkflowListViewProps) {
         <table className="wf-table">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Status</th>
-              <th>Nodes</th>
-              <th>Updated</th>
+              {SORT_COLUMNS.map(({ key, label }) => (
+                <th key={key}>
+                  <button type="button" className="wf-table__sort" onClick={() => handleSort(key)}>
+                    {label}
+                    <span className={`wf-table__sort-icon${sortKey === key ? " wf-table__sort-icon--active" : ""}`}>
+                      {sortKey === key ? (sortDirection === "asc" ? "▲" : "▼") : "↕"}
+                    </span>
+                  </button>
+                </th>
+              ))}
               <th aria-label="Actions" />
             </tr>
           </thead>
           <tbody>
-            {workflows.map((workflow) => (
+            {sortedWorkflows.map((workflow) => (
               <tr key={workflow.id}>
                 <td>
                   <button type="button" className="wf-link" onClick={() => onOpenWorkflow(workflow.id)}>
@@ -124,9 +172,7 @@ export function WorkflowListView({ onOpenWorkflow }: WorkflowListViewProps) {
                   <button
                     type="button"
                     className="wf-button wf-button--danger"
-                    disabled={workflow.isSystem}
-                    title={workflow.isSystem ? "System workflows can't be deleted" : undefined}
-                    onClick={() => void handleRemove(workflow.id, workflow.name, workflow.isSystem)}
+                    onClick={() => void handleRemove(workflow.id, workflow.name)}
                   >
                     Delete
                   </button>

@@ -47,6 +47,7 @@ function WorkflowEditorViewInner({ workflowId, onBack, runLogsView, onRunLogsVie
   const getNodeType = useNodeTypeLookup();
   const runtime = useWorkflowRuntime();
   const [openNodeId, setOpenNodeId] = useState<string | undefined>(undefined);
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | undefined>(undefined);
   const [isSaving, setIsSaving] = useState(false);
   const [addRequest, setAddRequest] = useState<AddNodeRequest | undefined>(undefined);
   const [isEditingDetail, setIsEditingDetail] = useState(false);
@@ -80,9 +81,11 @@ function WorkflowEditorViewInner({ workflowId, onBack, runLogsView, onRunLogsVie
           onDelete: () => deleteNode(node.id),
           onToggleDisabled: () => toggleNodeDisabled(node.id),
           issues: validateNode(getNodeType(node.data.nodeType), node.data.parameters),
+          isToolbarVisible: node.id === hoveredNodeId,
+          onHoverNode: () => setHoveredNodeId(node.id),
         },
       })),
-    [editorNodes, connectedOutputsByNode, deleteNode, toggleNodeDisabled, getNodeType]
+    [editorNodes, connectedOutputsByNode, deleteNode, toggleNodeDisabled, getNodeType, hoveredNodeId]
   );
 
   const edgesWithHandlers: WorkflowFlowEdge[] = useMemo(
@@ -101,7 +104,13 @@ function WorkflowEditorViewInner({ workflowId, onBack, runLogsView, onRunLogsVie
       if (isTypingTarget(event.target) || addRequest || openNodeId || activeRunLogsView) return;
       const meta = event.ctrlKey || event.metaKey;
 
-      if (meta && event.key.toLowerCase() === "a") {
+      if (meta && event.key.toLowerCase() === "z" && !event.shiftKey) {
+        event.preventDefault();
+        editor.undo();
+      } else if (meta && (event.key.toLowerCase() === "y" || (event.key.toLowerCase() === "z" && event.shiftKey))) {
+        event.preventDefault();
+        editor.redo();
+      } else if (meta && event.key.toLowerCase() === "a") {
         event.preventDefault();
         editor.selectAllNodes(true);
       } else if (meta && event.key.toLowerCase() === "d") {
@@ -208,6 +217,11 @@ function WorkflowEditorViewInner({ workflowId, onBack, runLogsView, onRunLogsVie
         >
           {editor.runStatus === "running" ? "Running…" : "Publish"}
         </button>
+        {editor.canStop && editor.runStatus === "running" && (
+          <button type="button" className="wf-button wf-button--danger" onClick={() => void editor.stop()}>
+            Stop
+          </button>
+        )}
         {editor.runStatus !== "idle" && (
           <span className={`wf-run-status wf-run-status--${editor.runStatus}`}>
             {editor.runStatus}
@@ -252,6 +266,9 @@ function WorkflowEditorViewInner({ workflowId, onBack, runLogsView, onRunLogsVie
           edges={editor.edges}
           onChangeParameter={editor.updateNodeParameter}
           onExecute={editor.runNode}
+          onExecuteWithUpstream={editor.runNodeWithUpstream}
+          onExecuteUpstreamOnly={(nodeId) => editor.runNodeWithUpstream(nodeId, false)}
+          onStopExecute={editor.stopNode}
           onClose={() => setOpenNodeId(undefined)}
         />
       )}

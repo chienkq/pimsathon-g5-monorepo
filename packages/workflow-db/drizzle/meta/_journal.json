@@ -120,6 +120,41 @@
       "when": 1789400000005,
       "tag": "0016_familiar_magneto",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1789400000006,
+      "tag": "0017_mighty_wrecking_crew",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1789400000007,
+      "tag": "0018_stale_vulture",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1789400000008,
+      "tag": "0019_freezing_warbound",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1789400000009,
+      "tag": "0020_shallow_madame_web",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1789400000010,
+      "tag": "0021_foamy_omega_red",
+      "breakpoints": true
     }
   ]
 }

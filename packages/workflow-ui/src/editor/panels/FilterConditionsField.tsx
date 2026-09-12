@@ -42,9 +42,18 @@ function ConditionRow({
     selectedField?.dynamicValueOptions === "projects" ? projectValueOptions : selectedField?.valueOptions;
   const datalistId = valueOptions && valueOptions.length > 0 ? `wf-filter-values-${condition.id}` : undefined;
 
+  const fieldDatalistId = `wf-filter-fields-${condition.id}`;
   const setField = (leftField: string) => {
-    const type = fieldOptions.find((option) => option.value === leftField)?.type ?? "string";
-    onChange({ ...condition, leftField, operator: { type, operation: FILTER_OPERATORS_BY_TYPE[type][0].value } });
+    const matchedType = fieldOptions.find((option) => option.value === leftField)?.type;
+    if (matchedType && matchedType !== selectedField?.type) {
+      onChange({
+        ...condition,
+        leftField,
+        operator: { type: matchedType, operation: FILTER_OPERATORS_BY_TYPE[matchedType][0].value },
+      });
+    } else {
+      onChange({ ...condition, leftField });
+    }
   };
   const setOperation = (operation: string) =>
     onChange({ ...condition, operator: { ...condition.operator, operation } });
@@ -53,17 +62,19 @@ function ConditionRow({
 
   return (
     <div className="wf-filter-row">
-      <select
-        className="wf-filter-row__field"
+      <input
+        type="text"
+        className="wf-input wf-filter-row__field"
         value={condition.leftField}
+        placeholder="Field"
+        list={fieldDatalistId}
         onChange={(event) => setField(event.target.value)}
-      >
+      />
+      <datalist id={fieldDatalistId}>
         {fieldOptions.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
+          <option key={option.value} value={option.value} label={option.label} />
         ))}
-      </select>
+      </datalist>
       <select
         className="wf-filter-row__operator"
         value={condition.operator.operation}

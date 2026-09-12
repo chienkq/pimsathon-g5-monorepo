@@ -7,6 +7,11 @@
  */
 export type LlmProviderId = "openai" | "anthropic" | "azure-openai" | "google" | "ollama" | "openai-compatible";
 
+/** "chat" configs back completion nodes (Send Message to AI Agent); "embedding" configs back
+ *  Code Search's vector index. Both share the provider catalog/connection fields below — Anthropic
+ *  is the one provider excluded from "embedding" since it has no embeddings API. */
+export type LlmConfigKind = "chat" | "embedding";
+
 export interface LlmFieldSpec {
   key: string;
   label: string;
@@ -29,6 +34,10 @@ export interface LlmProviderSpec {
   connectionFields: LlmFieldSpec[];
   defaultModel: string;
   modelPlaceholder: string;
+  /** False only for Anthropic — every other provider here exposes an embeddings endpoint. Gates
+   *  which providers the "embedding" kind offers in the LLM Settings form and Code Search's config
+   *  picker. */
+  supportsEmbedding?: boolean;
 }
 
 export const LLM_PROVIDERS: LlmProviderSpec[] = [
@@ -39,6 +48,7 @@ export const LLM_PROVIDERS: LlmProviderSpec[] = [
     color: "#10a37f",
     defaultModel: "gpt-4o-mini",
     modelPlaceholder: "gpt-4o, gpt-4o-mini, o3-mini...",
+    supportsEmbedding: true,
     connectionFields: [
       { key: "apiKey", label: "API Key", type: "password", required: true, placeholder: "sk-..." },
       {
@@ -69,6 +79,7 @@ export const LLM_PROVIDERS: LlmProviderSpec[] = [
     color: "#0078d4",
     defaultModel: "gpt-4o",
     modelPlaceholder: "The base model behind your deployment, e.g. gpt-4o",
+    supportsEmbedding: true,
     connectionFields: [
       { key: "apiKey", label: "API Key", type: "password", required: true },
       {
@@ -95,6 +106,7 @@ export const LLM_PROVIDERS: LlmProviderSpec[] = [
     color: "#4285f4",
     defaultModel: "gemini-1.5-pro",
     modelPlaceholder: "gemini-1.5-pro, gemini-1.5-flash...",
+    supportsEmbedding: true,
     connectionFields: [
       { key: "apiKey", label: "API Key", type: "password", required: true },
       { key: "baseUrl", label: "Base URL", type: "text", placeholder: "https://generativelanguage.googleapis.com" },
@@ -107,6 +119,7 @@ export const LLM_PROVIDERS: LlmProviderSpec[] = [
     color: "#6e7781",
     defaultModel: "llama3.1",
     modelPlaceholder: "llama3.1, mistral, qwen2.5...",
+    supportsEmbedding: true,
     connectionFields: [
       { key: "baseUrl", label: "Server URL", type: "text", required: true, placeholder: "http://localhost:11434" },
     ],
@@ -119,6 +132,7 @@ export const LLM_PROVIDERS: LlmProviderSpec[] = [
     color: "#6366f1",
     defaultModel: "",
     modelPlaceholder: "Whatever model id your endpoint exposes",
+    supportsEmbedding: true,
     connectionFields: [
       { key: "baseUrl", label: "Base URL", type: "text", required: true, placeholder: "https://your-endpoint/v1" },
       { key: "apiKey", label: "API Key", type: "password", placeholder: "Leave blank if not required" },
@@ -184,12 +198,66 @@ export const LLM_COMMON_FIELDS: LlmFieldSpec[] = [
   },
 ];
 
+/**
+ * Tuning fields for `kind: "embedding"` configs — model + how to call it, rendered instead of
+ * `LLM_COMMON_FIELDS` when the config's kind is "embedding". `dimension` is required because
+ * pgvector's column width is fixed at the schema level (see workflow-db's
+ * `EMBEDDING_VECTOR_DIMENSIONS`) — a config whose model produces a different width can't actually be
+ * used by Code Search until a migration changes the column. `queryPrefix`/`passagePrefix` back
+ * instruction-tuned embedding models (e.g. multilingual-e5-large, which expects `"query: "` prepended
+ * to search queries and `"passage: "` to indexed text) — left blank for models that don't need them.
+ */
+export const EMBEDDING_COMMON_FIELDS: LlmFieldSpec[] = [
+  {
+    key: "model",
+    label: "Model",
+    type: "text",
+    required: true,
+    helpText: "The exact model/deployment id the provider expects.",
+  },
+  {
+    key: "dimension",
+    label: "Output dimension",
+    type: "number",
+    required: true,
+    min: 1,
+    max: 8192,
+    step: 1,
+    helpText: "The model's embedding vector width, e.g. 1024 for multilingual-e5-large or bge-m3.",
+  },
+  {
+    key: "queryPrefix",
+    label: "Query prefix",
+    type: "text",
+    placeholder: "query: ",
+    helpText: "Prepended to search queries before embedding. Leave blank if the model doesn't use one.",
+  },
+  {
+    key: "passagePrefix",
+    label: "Passage prefix",
+    type: "text",
+    placeholder: "passage: ",
+    helpText: "Prepended to indexed text (e.g. code chunks) before embedding. Leave blank if not needed.",
+  },
+  {
+    key: "timeoutMs",
+    label: "Request timeout (ms)",
+    type: "number",
+    min: 1000,
+    max: 300000,
+    step: 1000,
+    helpText: "Fails the call instead of hanging a reindex/search indefinitely.",
+  },
+];
+
 export const LLM_CONFIG_DEFAULTS = { temperature: 0.7, maxTokens: 1024, timeoutMs: 60000 } as const;
+export const EMBEDDING_CONFIG_DEFAULTS = { dimension: 1024, timeoutMs: 60000 } as const;
 
 /** The client-safe shape returned by the backend — never carries the raw API key, only whether one is set. */
 export interface LlmConfigSummary {
   id: string;
   name: string;
+  kind: LlmConfigKind;
   provider: LlmProviderId;
   model: string;
   baseUrl: string | null;
@@ -199,6 +267,7 @@ export interface LlmConfigSummary {
   topP: number | null;
   timeoutMs: number;
   systemPrompt: string | null;
+  dimension: number | null;
   isDefault: boolean;
   hasApiKey: boolean;
   createdAt: string;

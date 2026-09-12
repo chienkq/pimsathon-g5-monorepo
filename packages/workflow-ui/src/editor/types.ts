@@ -5,7 +5,7 @@ export interface WorkflowNodeData extends Record<string, unknown> {
   nodeType: string;
   label: string;
   parameters: Record<string, unknown>;
-  status?: NodeRunStatus | "running";
+  status?: NodeRunStatus | "running" | "cancelled";
   result?: NodeExecutionResult;
   disabled?: boolean;
   /** Config-time validation issues (missing required params, invalid JSON) — injected by the canvas. */
@@ -17,6 +17,9 @@ export interface WorkflowNodeData extends Record<string, unknown> {
   /** Injected by the canvas: node hover-toolbar actions. */
   onDelete?: () => void;
   onToggleDisabled?: () => void;
+  /** Injected by the canvas: whether this node's hover toolbar should stay shown (sticky until another node is hovered). */
+  isToolbarVisible?: boolean;
+  onHoverNode?: () => void;
 }
 
 export interface WorkflowEdgeData extends Record<string, unknown> {

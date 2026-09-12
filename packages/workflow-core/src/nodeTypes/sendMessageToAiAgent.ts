@@ -38,20 +38,39 @@ export const sendMessageToAiAgentNodeType: NodeTypeDefinition = {
       helpText: "The instruction sent to the agent for each input item, alongside that item's own JSON as context.",
       required: true,
     },
+    {
+      key: "runMode",
+      label: "Run Mode",
+      type: "select",
+      default: "perItem",
+      options: [
+        { label: "Per Item (sequential)", value: "perItem" },
+        { label: "All Items (single batch call)", value: "batch" },
+      ],
+      helpText:
+        "Per Item calls the agent once per input item, one after another. All Items sends every input item's JSON together as context in a single agent call.",
+    },
   ],
   async execute({ parameters, input, services }) {
     const agentName = String(parameters.agentName ?? "");
     const message = String(parameters.message ?? "");
+    const runMode = String(parameters.runMode ?? "perItem");
     if (!agentName) throw new Error("Send Message to AI Agent requires an Agent (an LLM Config name).");
     const llmClient = services?.llmClient as AiAgentLlmService | undefined;
     if (!llmClient)
       throw new Error("Send Message to AI Agent requires an `llmClient` service (only available in backend).");
 
     const items = input.length > 0 ? input : [{ json: {} }];
+
+    if (runMode === "batch") {
+      const response = await llmClient.complete(agentName, { message, context: items.map((item) => item.json) });
+      return { branches: { main: [{ json: { agentName, message, runMode, response } }] } };
+    }
+
     const output: NodeExecutionData[] = [];
     for (const item of items) {
       const response = await llmClient.complete(agentName, { message, context: item.json });
-      output.push({ json: { ...item.json, agentName, message, response } });
+      output.push({ json: { ...item.json, agentName, message, runMode, response } });
     }
     return { branches: { main: output } };
   },

@@ -1,0 +1,1 @@
+ALTER TABLE "ai_agents" ADD COLUMN "max_tool_iterations" integer DEFAULT 8 NOT NULL;

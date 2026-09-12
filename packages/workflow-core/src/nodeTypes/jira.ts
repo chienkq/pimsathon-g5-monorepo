@@ -1,10 +1,16 @@
 import type { NodeExecutionData, NodeTypeDefinition } from "../types.js";
 
-/** A single Jira issue as returned by the REST `/search` endpoint, trimmed to the fields this node reads. */
+/** A single Jira issue as returned by the REST `/search` endpoint. `fields` now carries every field
+ *  Jira exposes for the issue (the client requests `fields: ["*all"]`), not just the handful this
+ *  node's own UI reads, so the full raw issue can be persisted downstream (see ticketUpsert.ts). */
 export interface JiraIssue {
   id: string;
   key: string;
   fields: Record<string, unknown>;
+  /** Present when the client requests `expand: ["renderedFields"]` — HTML-rendered versions of fields like `description`. */
+  renderedFields?: Record<string, unknown>;
+  /** Present when the client requests `expand: ["changelog"]` — this issue's field-change history. */
+  changelog?: Record<string, unknown>;
 }
 
 /** Injected via `executeWorkflow(workflow, { services: { jiraClient } })` — backend provides the real implementation. */

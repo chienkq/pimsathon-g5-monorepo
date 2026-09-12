@@ -36,6 +36,8 @@ const FALLBACK_ICONS: IconMap = {
   publishWidget: "▥",
   analysisResultSave: "⇥",
   analysisResultQuery: "⇤",
+  codeIndex: "⌬",
+  codeSearch: "⚲",
 };
 
 export function getNodeIcon(type: string, fallback: string): string {

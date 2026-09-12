@@ -1,3 +1,4 @@
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { boolean, doublePrecision, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 /** Mirrors workflow-core's `WorkflowDefinition` so the server can persist/schedule workflows independently of the browser's LocalStorageWorkflowRepository. */
@@ -45,6 +46,13 @@ export const tickets = pgTable(
     assignee: text("assignee"),
     storyPoints: integer("story_points"),
     sprintId: text("sprint_id"),
+    issueType: text("issue_type"),
+    epicKey: text("epic_key"),
+    epicName: text("epic_name"),
+    components: jsonb("components").$type<string[]>(),
+    fixVersions: jsonb("fix_versions").$type<string[]>(),
+    labels: jsonb("labels").$type<string[]>(),
+    dueDate: text("due_date"),
     raw: jsonb("raw").$type<Record<string, unknown>>().notNull(),
     syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -131,6 +139,7 @@ export const projects = pgTable("projects", {
   memberIds: jsonb("member_ids").$type<string[]>().notNull().default([]),
   color: text("color").notNull().default("#6366f1"),
   nextNumber: integer("next_number").notNull().default(1),
+  repositoryId: text("repository_id").references((): AnyPgColumn => repositories.id, { onDelete: "set null" }),
 });
 
 /**
@@ -278,13 +287,14 @@ export const analysisResults = pgTable("analysis_results", {
  * Real GitHub data, cached from the live API (see backend's githubClient.ts) — this is a mirror
  * for fast reads/joins, not a second source of truth; a sync workflow refreshes it, and writes
  * (create issue/branch/PR) always go to the real GitHub API first, then update this cache.
- * `owner`/`name` are GitHub's real identity for a repo; `projectId` is admin-ui's own link.
+ * `owner`/`name` are GitHub's real identity for a repo. The link to admin-ui's projects lives on
+ * `projects.repositoryId` instead of here, since one repo can now serve multiple projects but a
+ * project only ever has one active repo.
  */
 export const repositories = pgTable(
   "repositories",
   {
     id: text("id").primaryKey(),
-    projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
     owner: text("owner").notNull(),
     name: text("name").notNull(),
     defaultBranch: text("default_branch").notNull().default("main"),

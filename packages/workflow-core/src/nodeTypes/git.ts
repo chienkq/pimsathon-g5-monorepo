@@ -1,104 +1,68 @@
+import { createEmptyFilterValue, getFilterFieldValue } from "../filter.js";
 import type { NodeTypeDefinition } from "../types.js";
-
-export interface GitBranch {
-  name: string;
-  sha: string;
-}
-export interface GitCommit {
-  sha: string;
-  message: string;
-  authorLogin: string;
-  at: string;
-}
-export interface GitPullRequest {
-  number: number;
-  title: string;
-  headBranch: string;
-  baseBranch: string;
-  status: "Open" | "Closed" | "Merged";
-  url: string;
-}
-export interface GitIssue {
-  number: number;
-  title: string;
-  description: string;
-  labels: string[];
-  assignee: string;
-  state: "open" | "closed";
-  url: string;
-}
-export interface GitRepositoryInfo {
-  defaultBranch: string;
-}
-
-/** Injected via `executeWorkflow(workflow, { services: { gitClient } })` — backend provides the real GitHub API implementation. */
-export interface GitClientService {
-  getRepository(owner: string, repo: string): Promise<GitRepositoryInfo>;
-  listBranches(owner: string, repo: string): Promise<GitBranch[]>;
-  listCommits(owner: string, repo: string, branch: string): Promise<GitCommit[]>;
-  listPullRequests(owner: string, repo: string, state: "open" | "closed" | "all"): Promise<GitPullRequest[]>;
-  listIssues(owner: string, repo: string, state: "open" | "closed" | "all"): Promise<GitIssue[]>;
-  createIssue(
-    owner: string,
-    repo: string,
-    input: { title: string; body: string; labels: string[]; assignee?: string }
-  ): Promise<GitIssue>;
-  createBranch(owner: string, repo: string, input: { name: string; fromBranch: string }): Promise<GitBranch>;
-  createPullRequest(
-    owner: string,
-    repo: string,
-    input: { title: string; head: string; base: string }
-  ): Promise<GitPullRequest>;
-}
 
 /**
  * Injected via `executeWorkflow(workflow, { services: { localGitClient } })` — backend's read-only
- * local-folder client (`apps/backend/src/localGitClient.ts`), standing in for GitHub when no GitHub
- * connection exists. Deliberately narrow: branch names only, no commits/PRs/issues (see
- * [[git_control_settings_and_local_source]] on why local-git stays read-only/no-synced-entities).
+ * local-folder client (`apps/backend/src/localGitClient.ts`). Deliberately read-only: this node
+ * mirrors n8n's Git node's read side (List Branches/Status/Log/List Config) but not its write side
+ * (Add/Commit/Push/Pull/Clone/Tag/Add Config/User Setup) — see
+ * [[git_control_settings_and_local_source]] on why local-git stays read-only/no-synced-entities.
+ * For a real remote GitHub repository (branches/commits/PRs/issues, reads and writes), use the
+ * separate GitHub node instead — see `github.ts`.
  */
 export interface LocalGitClientService {
   listBranches(query?: string): Promise<string[]>;
+  fetch(): Promise<{ success: true }>;
+  getStatus(): Promise<{
+    currentBranch: string;
+    ahead: number;
+    behind: number;
+    staged: string[];
+    modified: string[];
+    notAdded: string[];
+    deleted: string[];
+    conflicted: string[];
+    isClean: boolean;
+  }>;
+  getLog(options?: {
+    maxCount?: number;
+    branch?: string;
+  }): Promise<Array<{ hash: string; message: string; authorName: string; authorEmail: string; date: string }>>;
+  getConfigList(): Promise<Array<{ key: string; value: string }>>;
+  listProjectFiles(options?: { maxTotalBytes?: number }): Promise<LocalGitProjectFiles>;
 }
 
-const SOURCES = ["GitHub", "Local"] as const;
-
-const ACTIONS = [
-  "Get Repository",
-  "List Branches",
-  "List Commits",
-  "List Pull Requests",
-  "List Issues",
-  "Create Issue",
-  "Create Branch",
-  "Create Pull Request",
-] as const;
-
-function parseCommaList(value: unknown): string[] {
-  return String(value ?? "")
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter(Boolean);
+/** One tracked file's contents, as returned by "Read Project Files". */
+export interface LocalGitProjectFile {
+  path: string;
+  content: string;
+  bytes: number;
 }
+
+/**
+ * Every tracked file (`git ls-files`, so already respects `.gitignore`) under a byte budget —
+ * binaries/lockfiles/oversized files are skipped, and `truncated` is set once the budget or file-count
+ * safety cap cuts the walk short, so a caller (e.g. an AI Agent node) knows the set is partial.
+ */
+export interface LocalGitProjectFiles {
+  files: LocalGitProjectFile[];
+  fileCount: number;
+  totalBytes: number;
+  truncated: boolean;
+}
+
+const ACTIONS = ["List Branches", "Fetch", "Status", "Log", "List Config", "Read Project Files"] as const;
 
 export const gitNodeType: NodeTypeDefinition = {
   type: "git",
   displayName: "Git",
   description:
-    "Reads or writes against a real GitHub repository (branches, commits, PRs, issues), or lists branches from a local git checkout when no GitHub connection is configured.",
+    "Reads state from a local git checkout (branches, status, log, config, tracked file contents) and fetches remote-tracking refs — no writes to the working tree, no GitHub connection needed.",
   group: "app",
-  color: "#24292e",
+  color: "#f05133",
   hasInput: true,
   outputs: ["main"],
   parameters: [
-    {
-      key: "source",
-      label: "Source",
-      type: "select",
-      default: "GitHub",
-      options: SOURCES.map((value) => ({ label: value, value })),
-      helpText: 'Local only supports "List Branches" (read-only local folder, no commits/PRs/issues).',
-    },
     {
       key: "action",
       label: "Action",
@@ -107,151 +71,73 @@ export const gitNodeType: NodeTypeDefinition = {
       options: ACTIONS.map((value) => ({ label: value, value })),
     },
     {
-      key: "localQuery",
-      label: "Branch Name Contains",
-      type: "string",
-      default: "",
-      placeholder: "e.g. a work item key like PROJ-12",
-      helpText: "Used by Local source's List Branches to filter branch names (case-insensitive substring).",
-    },
-    {
-      key: "owner",
-      label: "Owner",
-      type: "string",
-      default: "",
-      placeholder: "e.g. octocat",
-      helpText: "Used by GitHub source.",
-    },
-    {
-      key: "repo",
-      label: "Repository",
-      type: "string",
-      default: "",
-      placeholder: "e.g. hello-world",
-      helpText: "Used by GitHub source.",
+      key: "filters",
+      label: "Filters",
+      type: "filter",
+      default: createEmptyFilterValue(),
+      filterFields: [{ label: "Name", value: "name", type: "string" }],
+      helpText:
+        'Filters branch names by substring (case-insensitive), regardless of the operator picked — the underlying "git branch" lookup only supports substring matching, not the full operator set.',
+      showWhen: { key: "action", values: ["List Branches"] },
     },
     {
       key: "branch",
       label: "Branch",
       type: "string",
       default: "",
-      helpText: "Used by List Commits (defaults to the repo's default branch).",
+      helpText: "Defaults to the current branch.",
+      showWhen: { key: "action", values: ["Log"] },
     },
     {
-      key: "state",
-      label: "State",
-      type: "select",
-      default: "open",
-      options: ["open", "closed", "all"].map((value) => ({ label: value, value })),
-      helpText: "Used by List Pull Requests, List Issues.",
+      key: "maxCount",
+      label: "Max Commits",
+      type: "number",
+      default: 20,
+      showWhen: { key: "action", values: ["Log"] },
     },
     {
-      key: "title",
-      label: "Title",
-      type: "string",
-      default: "",
-      helpText: "Used by Create Issue, Create Pull Request.",
-    },
-    { key: "description", label: "Description / Body", type: "string", default: "", helpText: "Used by Create Issue." },
-    {
-      key: "labels",
-      label: "Labels (comma-separated)",
-      type: "string",
-      default: "",
-      helpText: "Used by Create Issue.",
-    },
-    { key: "assignee", label: "Assignee (login)", type: "string", default: "", helpText: "Used by Create Issue." },
-    { key: "branchName", label: "New Branch Name", type: "string", default: "", helpText: "Used by Create Branch." },
-    {
-      key: "fromBranch",
-      label: "From Branch",
-      type: "string",
-      default: "",
-      helpText: "Used by Create Branch (defaults to the repo's default branch).",
-    },
-    { key: "headBranch", label: "Head Branch", type: "string", default: "", helpText: "Used by Create Pull Request." },
-    {
-      key: "baseBranch",
-      label: "Base Branch",
-      type: "string",
-      default: "",
-      helpText: "Used by Create Pull Request (defaults to the repo's default branch).",
+      key: "maxTotalSizeKb",
+      label: "Max Total Size (KB)",
+      type: "number",
+      default: 500,
+      helpText:
+        "Combined size budget across all files' contents — binaries, lockfiles, and any single file over 100KB are skipped outright. Feeds into a downstream AI Agent node, so keep this within your model's context window.",
+      showWhen: { key: "action", values: ["Read Project Files"] },
     },
   ],
   async execute({ parameters, services }) {
-    const source = String(parameters.source ?? "GitHub");
     const action = String(parameters.action ?? "List Branches");
-
-    if (source === "Local") {
-      const localGitClient = services?.localGitClient as LocalGitClientService | undefined;
-      if (!localGitClient)
-        throw new Error("Git node (Local source) requires a `localGitClient` service (only available in backend).");
-      if (action !== "List Branches")
-        throw new Error(
-          `Git (Local source) only supports "List Branches" — "${action}" needs a real GitHub connection.`
-        );
-      const query = String(parameters.localQuery ?? "") || undefined;
-      const names = await localGitClient.listBranches(query);
-      return { branches: { main: names.map((name) => ({ json: { name } })) } };
-    }
-
-    const gitClient = services?.gitClient as GitClientService | undefined;
-    if (!gitClient) throw new Error("Git node requires a `gitClient` service (only available in backend).");
-
-    const owner = String(parameters.owner ?? "");
-    const repo = String(parameters.repo ?? "");
-    if (!owner || !repo) throw new Error("Git node requires an Owner and a Repository.");
-    const state = (parameters.state || "open") as "open" | "closed" | "all";
-
-    const defaultBranchFallback = async () => (await gitClient.getRepository(owner, repo)).defaultBranch;
+    const localGitClient = services?.localGitClient as LocalGitClientService | undefined;
+    if (!localGitClient) throw new Error("Git node requires a `localGitClient` service (only available in backend).");
 
     switch (action) {
-      case "Get Repository": {
-        const info = await gitClient.getRepository(owner, repo);
-        return { branches: { main: [{ json: { ...info } }] } };
-      }
       case "List Branches": {
-        const branches = await gitClient.listBranches(owner, repo);
-        return { branches: { main: branches.map((b) => ({ json: { ...b } })) } };
+        const query = getFilterFieldValue(parameters.filters, "name");
+        const names = await localGitClient.listBranches(query);
+        return { branches: { main: names.map((name) => ({ json: { name } })) } };
       }
-      case "List Commits": {
-        const branch = String(parameters.branch ?? "") || (await defaultBranchFallback());
-        const commits = await gitClient.listCommits(owner, repo, branch);
+      case "Fetch": {
+        const result = await localGitClient.fetch();
+        return { branches: { main: [{ json: { ...result } }] } };
+      }
+      case "Status": {
+        const status = await localGitClient.getStatus();
+        return { branches: { main: [{ json: { ...status } }] } };
+      }
+      case "Log": {
+        const branch = String(parameters.branch ?? "") || undefined;
+        const maxCount = Number(parameters.maxCount ?? 20) || undefined;
+        const commits = await localGitClient.getLog({ branch, maxCount });
         return { branches: { main: commits.map((c) => ({ json: { ...c } })) } };
       }
-      case "List Pull Requests": {
-        const prs = await gitClient.listPullRequests(owner, repo, state);
-        return { branches: { main: prs.map((p) => ({ json: { ...p } })) } };
+      case "List Config": {
+        const entries = await localGitClient.getConfigList();
+        return { branches: { main: entries.map((e) => ({ json: { ...e } })) } };
       }
-      case "List Issues": {
-        const issues = await gitClient.listIssues(owner, repo, state);
-        return { branches: { main: issues.map((i) => ({ json: { ...i } })) } };
-      }
-      case "Create Issue": {
-        const title = String(parameters.title ?? "");
-        if (!title) throw new Error("Git Create Issue requires a Title.");
-        const issue = await gitClient.createIssue(owner, repo, {
-          title,
-          body: String(parameters.description ?? ""),
-          labels: parseCommaList(parameters.labels),
-          assignee: String(parameters.assignee ?? "") || undefined,
-        });
-        return { branches: { main: [{ json: { ...issue } }] } };
-      }
-      case "Create Branch": {
-        const name = String(parameters.branchName ?? "");
-        if (!name) throw new Error("Git Create Branch requires a New Branch Name.");
-        const fromBranch = String(parameters.fromBranch ?? "") || (await defaultBranchFallback());
-        const branch = await gitClient.createBranch(owner, repo, { name, fromBranch });
-        return { branches: { main: [{ json: { ...branch } }] } };
-      }
-      case "Create Pull Request": {
-        const title = String(parameters.title ?? "");
-        const head = String(parameters.headBranch ?? "");
-        if (!title || !head) throw new Error("Git Create Pull Request requires a Title and a Head Branch.");
-        const base = String(parameters.baseBranch ?? "") || (await defaultBranchFallback());
-        const pr = await gitClient.createPullRequest(owner, repo, { title, head, base });
-        return { branches: { main: [{ json: { ...pr } }] } };
+      case "Read Project Files": {
+        const maxTotalSizeKb = Number(parameters.maxTotalSizeKb ?? 500) || 500;
+        const result = await localGitClient.listProjectFiles({ maxTotalBytes: maxTotalSizeKb * 1024 });
+        return { branches: { main: [{ json: { ...result } }] } };
       }
       default:
         throw new Error(`Git: unknown action "${action}".`);

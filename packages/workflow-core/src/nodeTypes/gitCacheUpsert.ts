@@ -1,8 +1,8 @@
-import type { GitBranch, GitIssue, GitPullRequest, GitRepositoryInfo } from "./git.js";
+import type { GitBranch, GitIssue, GitPullRequest, GitRepositoryInfo } from "./github.js";
 import type { NodeExecutionData, NodeTypeDefinition } from "../types.js";
 
 /**
- * Caches real GitHub data (see git.ts's `GitClientService`) into Postgres so admin-ui's GitHub
+ * Caches real GitHub data (see github.ts's `GitClientService`) into Postgres so admin-ui's GitHub
  * screen and dashboard workflows can read it without hitting the GitHub API on every page view —
  * same "sync into a mirror table" shape as `ticketUpsert`, just for a different upstream connector.
  */

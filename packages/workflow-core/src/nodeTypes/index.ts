@@ -16,6 +16,7 @@ import {
 import { ticketQueryNodeType } from "./ticketQuery.js";
 import { ticketUpsertNodeType } from "./ticketUpsert.js";
 import { gitNodeType } from "./git.js";
+import { githubNodeType } from "./github.js";
 import { gitCacheUpsertNodeType } from "./gitCacheUpsert.js";
 import { httpRequestNodeType } from "./httpRequest.js";
 import { ifNodeType } from "./if.js";
@@ -40,6 +41,7 @@ export const nodeTypeRegistry: Record<string, NodeTypeDefinition> = {
   [sonarQubeNodeType.type]: sonarQubeNodeType,
   [jiraNodeType.type]: jiraNodeType,
   [gitNodeType.type]: gitNodeType,
+  [githubNodeType.type]: githubNodeType,
   // Platform (admin-ui's own features)
   [workItemNodeType.type]: workItemNodeType,
   [planningGroupNodeType.type]: planningGroupNodeType,
@@ -132,6 +134,7 @@ export {
   ftpNodeType,
   gitCacheUpsertNodeType,
   gitNodeType,
+  githubNodeType,
   gmailNodeType,
   httpRequestNodeType,
   ifNodeType,
@@ -156,15 +159,9 @@ export {
 
 export type { TicketStoreService, NormalizedTicket, StoredTicket, TicketFilter } from "./ticketUpsert.js";
 export type { JiraClientService, JiraIssue } from "./jira.js";
-export type {
-  GitBranch,
-  GitClientService,
-  GitCommit,
-  GitIssue,
-  GitPullRequest,
-  GitRepositoryInfo,
-  LocalGitClientService,
-} from "./git.js";
+export type { GitBranch, GitClientService, GitCommit, GitIssue, GitPullRequest, GitRepositoryInfo } from "./github.js";
+export type { LocalGitClientService, LocalGitProjectFiles } from "./git.js";
+export type { AiAgentLlmService } from "./sendMessageToAiAgent.js";
 export type { GitCacheStoreService } from "./gitCacheUpsert.js";
 export type { WebhookRequestPayload } from "./webhook.js";
 export type {

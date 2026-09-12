@@ -25,6 +25,7 @@ const FALLBACK_ICONS: IconMap = {
   telegram: "➤",
   jira: "◈",
   git: "⌥",
+  github: "🐙",
   gitCacheUpsert: "⇥",
   ticketUpsert: "⇥",
   ticketQuery: "⇤",

@@ -12,7 +12,22 @@ export interface NormalizedTicket {
   priority?: string;
   assignee?: string;
   storyPoints?: number;
+  /** Jira Sprint field — maps 1:1 to this app's "cycle" concept (see `jiraTicketToWorkItem.ts`). */
   sprintId?: string;
+  /** Jira Issue Type (Story/Bug/Task/Epic/…), kept as a work item label on conversion. */
+  issueType?: string;
+  /** Jira Epic Link's issue key, kept as a work item label on conversion. */
+  epicKey?: string;
+  /** Jira Epic Link's display name (from the export's "Epic Name" column, when present). */
+  epicName?: string;
+  /** Jira Component/s — kept as work item labels on conversion (no structural equivalent in this app). */
+  components?: string[];
+  /** Jira Fix Version/s — maps to this app's "module" concept, a milestone-like grouping (see `jiraTicketToWorkItem.ts`). */
+  fixVersions?: string[];
+  /** Jira Labels — copied onto the work item's own `labels` as-is on conversion. */
+  labels?: string[];
+  /** Jira Due Date, ISO `yyyy-mm-dd` when parseable. */
+  dueDate?: string;
   raw: Record<string, unknown>;
 }
 
@@ -43,6 +58,10 @@ function normalizeJiraIssue(issue: JiraIssue): NormalizedTicket {
   const status = fields.status as { name?: string } | undefined;
   const priority = fields.priority as { name?: string } | undefined;
   const assignee = fields.assignee as { displayName?: string } | undefined;
+  const issueType = fields.issuetype as { name?: string } | undefined;
+  const components = fields.components as { name?: string }[] | undefined;
+  const fixVersions = fields.fixVersions as { name?: string }[] | undefined;
+  const labels = fields.labels as string[] | undefined;
   return {
     // externalId is the issue key, not Jira's internal numeric id — so a live-synced issue and the
     // same issue re-imported later from an Excel export (which only carries the key) land on the same
@@ -55,6 +74,13 @@ function normalizeJiraIssue(issue: JiraIssue): NormalizedTicket {
     status: status?.name ?? "Unknown",
     priority: priority?.name,
     assignee: assignee?.displayName,
+    issueType: issueType?.name,
+    // Sprint and Epic Link are Jira custom fields (numbered per-instance), not resolvable from the
+    // standard REST field names here — left for the Excel import path, which reads them by header text.
+    components: components?.map((c) => c.name).filter((n): n is string => !!n),
+    fixVersions: fixVersions?.map((v) => v.name).filter((n): n is string => !!n),
+    labels: labels && labels.length > 0 ? labels : undefined,
+    dueDate: typeof fields.duedate === "string" ? fields.duedate : undefined,
     raw: fields,
   };
 }

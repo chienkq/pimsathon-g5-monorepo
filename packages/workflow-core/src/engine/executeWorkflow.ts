@@ -1,5 +1,6 @@
 import { getNodeType } from "../nodeTypes/index.js";
 import type { NodeExecutionData, WorkflowConnection, WorkflowDefinition } from "../types.js";
+import { resolveParameters } from "./expressions.js";
 import { topologicalSort } from "./topologicalSort.js";
 
 export type NodeRunStatus = "success" | "error" | "skipped";
@@ -66,10 +67,11 @@ export async function executeWorkflow(
     const nodeStartedAt = new Date().toISOString();
     try {
       const nodeType = getNodeType(node.type);
+      const parameters = resolveParameters(node.parameters, input[0]?.json ?? {});
       // Nodes must run in topological order — a later node's input depends on an earlier node's
       // output — so this cannot be parallelized with Promise.all.
       // oxlint-disable-next-line no-await-in-loop
-      const result = await nodeType.execute({ parameters: node.parameters, input, services: options.services });
+      const result = await nodeType.execute({ parameters, input, services: options.services });
       const nodeResult: NodeExecutionResult = {
         status: "success",
         branches: result.branches,
@@ -93,4 +95,30 @@ export async function executeWorkflow(
 
   const status = Object.values(nodeResults).some((result) => result.status === "error") ? "error" : "success";
   return { workflowId: workflow.id, status, nodeResults, startedAt, finishedAt: new Date().toISOString() };
+}
+
+/**
+ * Runs a single node type in isolation (the NDV "Execute" / n8n "test step" action) — bypasses the
+ * graph entirely, so `input` must already be resolved by the caller (e.g. `getNodeInputData`).
+ */
+export async function executeSingleNode(
+  nodeTypeName: string,
+  parameters: Record<string, unknown>,
+  input: NodeExecutionData[],
+  services?: Record<string, unknown>
+): Promise<NodeExecutionResult> {
+  const startedAt = new Date().toISOString();
+  try {
+    const nodeType = getNodeType(nodeTypeName);
+    const resolvedParameters = resolveParameters(parameters, input[0]?.json ?? {});
+    const result = await nodeType.execute({ parameters: resolvedParameters, input, services });
+    return { status: "success", branches: result.branches, startedAt, finishedAt: new Date().toISOString() };
+  } catch (error) {
+    return {
+      status: "error",
+      error: error instanceof Error ? error.message : String(error),
+      startedAt,
+      finishedAt: new Date().toISOString(),
+    };
+  }
 }

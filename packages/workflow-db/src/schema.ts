@@ -1,4 +1,4 @@
-import { boolean, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, doublePrecision, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 /** Mirrors workflow-core's `WorkflowDefinition` so the server can persist/schedule workflows independently of the browser's LocalStorageWorkflowRepository. */
 export const workflows = pgTable("workflows", {
@@ -69,6 +69,41 @@ export const credentials = pgTable("credentials", {
 });
 
 /**
+ * Named LLM setups (provider + model + generation params), configurable from the "LLM Settings"
+ * screen (Automation sidebar) and referenced by AI-flavored nodes (e.g. Send Message to AI Agent)
+ * instead of each node embedding its own provider credentials. `apiKeyEncrypted` mirrors
+ * `credentials.secretEncrypted` (AES-256-GCM), and is null for providers that don't need a key
+ * (Ollama). `extra` holds provider-specific, non-secret connection fields that don't warrant their
+ * own column (OpenAI's `organization`, Azure's `deploymentName`/`apiVersion`). Exactly one row may
+ * have `isDefault: true` at a time — enforced in `llmConfigStore.ts`, not at the DB level.
+ */
+export const llmConfigs = pgTable("llm_configs", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  provider: text("provider").notNull(),
+  model: text("model").notNull(),
+  apiKeyEncrypted: text("api_key_encrypted"),
+  baseUrl: text("base_url"),
+  extra: jsonb("extra").$type<Record<string, string>>().notNull().default({}),
+  temperature: doublePrecision("temperature").notNull().default(0.7),
+  maxTokens: integer("max_tokens").notNull().default(1024),
+  topP: doublePrecision("top_p"),
+  timeoutMs: integer("timeout_ms").notNull().default(60000),
+  systemPrompt: text("system_prompt"),
+  isDefault: boolean("is_default").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Small key/value store for workspace-wide app settings that aren't a per-provider credential —
+ *  e.g. Git Control's "default source for work item Development tab" (`id: "git-control"`). */
+export const appSettings = pgTable("app_settings", {
+  id: text("id").primaryKey(),
+  value: jsonb("value").$type<Record<string, unknown>>().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
  * Platform data — the "platform" node group's own store, shaped to match `apps/admin-ui`'s domain
  * model exactly (see `apps/admin-ui/src/domain/types.ts`) rather than an external tracker's shape.
  * A work item here IS the PM tool's own ticket (what a Jira issue would be for a Jira-backed org) —
@@ -77,7 +112,9 @@ export const credentials = pgTable("credentials", {
  * shared home workflows read/write through the `workItem` node, and the natural target if/when
  * admin-ui's `domain/storage.ts` is pointed at this backend instead of localStorage.
  */
-/** Mirrors admin-ui's `Member` — read-only from admin-ui's side (it has no "create member" command). */
+/** Mirrors admin-ui's `Member`. Managed via the "Members" settings screen (Automation sidebar), which
+ *  calls the backend's `/api/members` CRUD routes directly rather than going through admin-ui's own
+ *  command/reducer layer (`domain/commands.ts`) the way work items and planning groups do. */
 export const members = pgTable("members", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),

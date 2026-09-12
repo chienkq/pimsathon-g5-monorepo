@@ -1,4 +1,5 @@
 import type { NodeTypeDefinition } from "../types.js";
+import { isExpressionValue } from "./expressions.js";
 
 /**
  * Config-time validation only — required fields empty, or `json`-type fields containing
@@ -12,7 +13,12 @@ export function validateNode(
   const issues: string[] = [];
 
   for (const field of nodeType.parameters) {
+    if (field.showWhen && !field.showWhen.values.includes(String(parameters[field.showWhen.key] ?? ""))) continue;
+
     const value = parameters[field.key] ?? field.default;
+    // Expressions are only resolvable at run time against upstream input, so their emptiness/shape
+    // can't be checked here — skip both the required and JSON-parseability checks for them.
+    if (isExpressionValue(value)) continue;
     const isEmpty = value === undefined || value === null || value === "";
 
     if (field.required && isEmpty) {

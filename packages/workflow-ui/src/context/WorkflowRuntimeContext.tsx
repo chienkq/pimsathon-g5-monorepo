@@ -1,8 +1,14 @@
-import { LocalWorkflowRuntime, type NodeTypeMeta, type WorkflowRuntime } from "@chienkq/workflow-core";
+import {
+  LocalWorkflowRuntime,
+  type NodeTypeMeta,
+  type WorkflowRuntime,
+  type WorkflowRuntimeProjectSummary,
+} from "@chienkq/workflow-core";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 const WorkflowRuntimeContext = createContext<WorkflowRuntime | null>(null);
 const NodeTypesContext = createContext<NodeTypeMeta[] | null>(null);
+const ProjectsContext = createContext<WorkflowRuntimeProjectSummary[]>([]);
 
 export interface WorkflowRuntimeProviderProps {
   /** Defaults to `LocalWorkflowRuntime` (in-browser, no real integrations). Pass an HTTP-backed one to run against a real backend. */
@@ -16,8 +22,9 @@ export interface WorkflowRuntimeProviderProps {
  * list instead of each re-fetching or falling back to a synchronous local registry.
  */
 export function WorkflowRuntimeProvider({ runtime, children }: WorkflowRuntimeProviderProps) {
-  const resolvedRuntime = useMemo(() => runtime ?? new LocalWorkflowRuntime(), [runtime]);
+  const resolvedRuntime = useMemo<WorkflowRuntime>(() => runtime ?? new LocalWorkflowRuntime(), [runtime]);
   const [nodeTypes, setNodeTypes] = useState<NodeTypeMeta[]>([]);
+  const [projects, setProjects] = useState<WorkflowRuntimeProjectSummary[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -29,9 +36,21 @@ export function WorkflowRuntimeProvider({ runtime, children }: WorkflowRuntimePr
     };
   }, [resolvedRuntime]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void resolvedRuntime.listProjects?.().then((loaded) => {
+      if (!cancelled) setProjects(loaded);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedRuntime]);
+
   return (
     <WorkflowRuntimeContext.Provider value={resolvedRuntime}>
-      <NodeTypesContext.Provider value={nodeTypes}>{children}</NodeTypesContext.Provider>
+      <NodeTypesContext.Provider value={nodeTypes}>
+        <ProjectsContext.Provider value={projects}>{children}</ProjectsContext.Provider>
+      </NodeTypesContext.Provider>
     </WorkflowRuntimeContext.Provider>
   );
 }
@@ -74,4 +93,9 @@ export function useNodeTypeLookup(): (type: string) => NodeTypeMeta {
 
 export function useNodeType(type: string): NodeTypeMeta {
   return useNodeTypeLookup()(type);
+}
+
+/** The live project list, once loaded — empty under `LocalWorkflowRuntime` or before the fetch resolves. */
+export function useProjects(): WorkflowRuntimeProjectSummary[] {
+  return useContext(ProjectsContext);
 }

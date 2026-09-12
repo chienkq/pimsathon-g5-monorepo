@@ -51,6 +51,18 @@ export interface GitClientService {
   ): Promise<GitPullRequest>;
 }
 
+/**
+ * Injected via `executeWorkflow(workflow, { services: { localGitClient } })` — backend's read-only
+ * local-folder client (`apps/backend/src/localGitClient.ts`), standing in for GitHub when no GitHub
+ * connection exists. Deliberately narrow: branch names only, no commits/PRs/issues (see
+ * [[git_control_settings_and_local_source]] on why local-git stays read-only/no-synced-entities).
+ */
+export interface LocalGitClientService {
+  listBranches(query?: string): Promise<string[]>;
+}
+
+const SOURCES = ["GitHub", "Local"] as const;
+
 const ACTIONS = [
   "Get Repository",
   "List Branches",
@@ -72,12 +84,21 @@ function parseCommaList(value: unknown): string[] {
 export const gitNodeType: NodeTypeDefinition = {
   type: "git",
   displayName: "Git",
-  description: "Reads or writes against a real GitHub repository (branches, commits, PRs, issues).",
+  description:
+    "Reads or writes against a real GitHub repository (branches, commits, PRs, issues), or lists branches from a local git checkout when no GitHub connection is configured.",
   group: "app",
   color: "#24292e",
   hasInput: true,
   outputs: ["main"],
   parameters: [
+    {
+      key: "source",
+      label: "Source",
+      type: "select",
+      default: "GitHub",
+      options: SOURCES.map((value) => ({ label: value, value })),
+      helpText: 'Local only supports "List Branches" (read-only local folder, no commits/PRs/issues).',
+    },
     {
       key: "action",
       label: "Action",
@@ -85,8 +106,30 @@ export const gitNodeType: NodeTypeDefinition = {
       default: "List Branches",
       options: ACTIONS.map((value) => ({ label: value, value })),
     },
-    { key: "owner", label: "Owner", type: "string", default: "", placeholder: "e.g. octocat", required: true },
-    { key: "repo", label: "Repository", type: "string", default: "", placeholder: "e.g. hello-world", required: true },
+    {
+      key: "localQuery",
+      label: "Branch Name Contains",
+      type: "string",
+      default: "",
+      placeholder: "e.g. a work item key like PROJ-12",
+      helpText: "Used by Local source's List Branches to filter branch names (case-insensitive substring).",
+    },
+    {
+      key: "owner",
+      label: "Owner",
+      type: "string",
+      default: "",
+      placeholder: "e.g. octocat",
+      helpText: "Used by GitHub source.",
+    },
+    {
+      key: "repo",
+      label: "Repository",
+      type: "string",
+      default: "",
+      placeholder: "e.g. hello-world",
+      helpText: "Used by GitHub source.",
+    },
     {
       key: "branch",
       label: "Branch",
@@ -136,13 +179,28 @@ export const gitNodeType: NodeTypeDefinition = {
     },
   ],
   async execute({ parameters, services }) {
+    const source = String(parameters.source ?? "GitHub");
+    const action = String(parameters.action ?? "List Branches");
+
+    if (source === "Local") {
+      const localGitClient = services?.localGitClient as LocalGitClientService | undefined;
+      if (!localGitClient)
+        throw new Error("Git node (Local source) requires a `localGitClient` service (only available in backend).");
+      if (action !== "List Branches")
+        throw new Error(
+          `Git (Local source) only supports "List Branches" — "${action}" needs a real GitHub connection.`
+        );
+      const query = String(parameters.localQuery ?? "") || undefined;
+      const names = await localGitClient.listBranches(query);
+      return { branches: { main: names.map((name) => ({ json: { name } })) } };
+    }
+
     const gitClient = services?.gitClient as GitClientService | undefined;
     if (!gitClient) throw new Error("Git node requires a `gitClient` service (only available in backend).");
 
     const owner = String(parameters.owner ?? "");
     const repo = String(parameters.repo ?? "");
     if (!owner || !repo) throw new Error("Git node requires an Owner and a Repository.");
-    const action = String(parameters.action ?? "List Branches");
     const state = (parameters.state || "open") as "open" | "closed" | "all";
 
     const defaultBranchFallback = async () => (await gitClient.getRepository(owner, repo)).defaultBranch;

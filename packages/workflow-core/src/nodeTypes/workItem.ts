@@ -1,3 +1,4 @@
+import { createEmptyFilterValue, getFilterFieldValue } from "../filter.js";
 import type { NodeExecutionData, NodeTypeDefinition } from "../types.js";
 
 /**
@@ -88,77 +89,119 @@ export const workItemNodeType: NodeTypeDefinition = {
       default: "List",
       options: ACTIONS.map((value) => ({ label: value, value })),
     },
-    { key: "id", label: "Id", type: "string", default: "", helpText: "Used by Get, Update, Move Status, Delete." },
     {
-      key: "projectId",
-      label: "Project Id",
+      key: "id",
+      label: "Id",
       type: "string",
       default: "",
-      helpText: "Used by List (filter) and Create.",
+      showWhen: { key: "action", values: ["Get", "Update", "Move Status", "Delete"] },
     },
     {
-      key: "status",
+      key: "moveStatus",
       label: "Status",
       type: "select",
       default: "",
       options: [{ label: "(any)", value: "" }, ...WORK_ITEM_STATUSES.map((value) => ({ label: value, value }))],
-      helpText: "Used by List (filter), Create, Update, and as the target status for Move Status.",
+      helpText: "The target status for Move Status.",
+      showWhen: { key: "action", values: ["Move Status"] },
     },
     {
-      key: "priority",
-      label: "Priority",
-      type: "select",
-      default: "",
-      options: [{ label: "(any)", value: "" }, ...WORK_ITEM_PRIORITIES.map((value) => ({ label: value, value }))],
-      helpText: "Used by List (filter), Create, Update.",
+      key: "filters",
+      label: "Fields",
+      type: "filter",
+      default: createEmptyFilterValue(),
+      filterFields: [
+        { label: "Project Id", value: "projectId", type: "string", dynamicValueOptions: "projects" },
+        {
+          label: "Status",
+          value: "status",
+          type: "string",
+          valueOptions: WORK_ITEM_STATUSES.map((value) => ({ label: value, value })),
+        },
+        {
+          label: "Priority",
+          value: "priority",
+          type: "string",
+          valueOptions: WORK_ITEM_PRIORITIES.map((value) => ({ label: value, value })),
+        },
+        { label: "External Provider", value: "externalProvider", type: "string" },
+        { label: "External Key", value: "externalKey", type: "string" },
+      ],
+      helpText:
+        'Pick a field, an operator, and a value (fixed text or an expression). For List, only "Equals" is applied as a filter — other operators are accepted but not evaluated, since the underlying store only supports exact-match lookups. For Create/Update, whatever value you set here is written as-is, regardless of operator.',
+      showWhen: { key: "action", values: ["List", "Create", "Update"] },
     },
-    { key: "title", label: "Title", type: "string", default: "", helpText: "Used by Create, Update." },
-    { key: "description", label: "Description", type: "string", default: "", helpText: "Used by Create, Update." },
-    { key: "assigneeId", label: "Assignee Id", type: "string", default: "", helpText: "Used by Create, Update." },
+    {
+      key: "title",
+      label: "Title",
+      type: "string",
+      default: "",
+      showWhen: { key: "action", values: ["Create", "Update"] },
+    },
+    {
+      key: "description",
+      label: "Description",
+      type: "string",
+      default: "",
+      showWhen: { key: "action", values: ["Create", "Update"] },
+    },
+    {
+      key: "assigneeId",
+      label: "Assignee Id",
+      type: "string",
+      default: "",
+      showWhen: { key: "action", values: ["Create", "Update"] },
+    },
     {
       key: "labels",
       label: "Labels (comma-separated)",
       type: "string",
       default: "",
-      helpText: "Used by Create, Update.",
+      showWhen: { key: "action", values: ["Create", "Update"] },
     },
-    { key: "startDate", label: "Start Date", type: "string", default: "", helpText: "Used by Create, Update." },
-    { key: "dueDate", label: "Due Date", type: "string", default: "", helpText: "Used by Create, Update." },
-    { key: "cycleId", label: "Cycle Id", type: "string", default: "", helpText: "Used by Create, Update." },
+    {
+      key: "startDate",
+      label: "Start Date",
+      type: "string",
+      default: "",
+      showWhen: { key: "action", values: ["Create", "Update"] },
+    },
+    {
+      key: "dueDate",
+      label: "Due Date",
+      type: "string",
+      default: "",
+      showWhen: { key: "action", values: ["Create", "Update"] },
+    },
+    {
+      key: "cycleId",
+      label: "Cycle Id",
+      type: "string",
+      default: "",
+      showWhen: { key: "action", values: ["Create", "Update"] },
+    },
     {
       key: "moduleIds",
       label: "Module Ids (comma-separated)",
       type: "string",
       default: "",
-      helpText: "Used by Create, Update.",
+      showWhen: { key: "action", values: ["Create", "Update"] },
     },
     {
       key: "storyPoints",
       label: "Story Points",
       type: "number",
       default: "",
-      helpText: "Used by Create, Update. Estimate for burndown/velocity analysis.",
-    },
-    {
-      key: "externalProvider",
-      label: "External Provider",
-      type: "string",
-      default: "",
-      helpText: 'Used by List (filter), Create, Update. e.g. "jira" — links this item back to its source issue/PR.',
-    },
-    {
-      key: "externalKey",
-      label: "External Key",
-      type: "string",
-      default: "",
-      helpText: "Used by List (filter), Create, Update. e.g. a Jira issue key.",
+      helpText: "Estimate for burndown/velocity analysis.",
+      showWhen: { key: "action", values: ["Create", "Update"] },
     },
     {
       key: "aiNote",
       label: "AI Note",
       type: "string",
       default: "",
-      helpText: "Used by Create, Update. Free-text scratchpad for AI/humans to leave context on this item.",
+      helpText: "Free-text scratchpad for AI/humans to leave context on this item.",
+      showWhen: { key: "action", values: ["Create", "Update"] },
     },
   ],
   async execute({ parameters, services }) {
@@ -168,15 +211,21 @@ export const workItemNodeType: NodeTypeDefinition = {
 
     const action = String(parameters.action ?? "List");
     const toItem = (item: PlatformWorkItem): NodeExecutionData => ({ json: { ...item } });
+    const filterField = (field: string) => getFilterFieldValue(parameters.filters, field);
 
     switch (action) {
       case "List": {
         const filter: WorkItemListFilter = {};
-        if (parameters.projectId) filter.projectId = String(parameters.projectId);
-        if (parameters.status) filter.status = parameters.status as WorkItemStatus;
-        if (parameters.priority) filter.priority = parameters.priority as WorkItemPriority;
-        if (parameters.externalProvider) filter.externalProvider = String(parameters.externalProvider);
-        if (parameters.externalKey) filter.externalKey = String(parameters.externalKey);
+        const projectId = filterField("projectId");
+        const status = filterField("status");
+        const priority = filterField("priority");
+        const externalProvider = filterField("externalProvider");
+        const externalKey = filterField("externalKey");
+        if (projectId) filter.projectId = projectId;
+        if (status) filter.status = status as WorkItemStatus;
+        if (priority) filter.priority = priority as WorkItemPriority;
+        if (externalProvider) filter.externalProvider = externalProvider;
+        if (externalKey) filter.externalKey = externalKey;
         const items = await workItemStore.list(filter);
         return { branches: { main: items.map(toItem) } };
       }
@@ -187,7 +236,7 @@ export const workItemNodeType: NodeTypeDefinition = {
         return { branches: { main: item ? [toItem(item)] : [] } };
       }
       case "Create": {
-        const projectId = String(parameters.projectId ?? "");
+        const projectId = filterField("projectId") ?? "";
         const title = String(parameters.title ?? "");
         if (!projectId) throw new Error("Work Item Create requires a Project Id.");
         if (!title) throw new Error("Work Item Create requires a Title.");
@@ -195,8 +244,8 @@ export const workItemNodeType: NodeTypeDefinition = {
           projectId,
           title,
           description: String(parameters.description ?? ""),
-          status: (parameters.status || "Todo") as WorkItemStatus,
-          priority: (parameters.priority || "Medium") as WorkItemPriority,
+          status: (filterField("status") || "Todo") as WorkItemStatus,
+          priority: (filterField("priority") || "Medium") as WorkItemPriority,
           assigneeId: String(parameters.assigneeId ?? ""),
           labels: parseCommaList(parameters.labels),
           startDate: String(parameters.startDate ?? ""),
@@ -207,8 +256,8 @@ export const workItemNodeType: NodeTypeDefinition = {
             parameters.storyPoints === "" || parameters.storyPoints === undefined
               ? undefined
               : Number(parameters.storyPoints),
-          externalProvider: parameters.externalProvider ? String(parameters.externalProvider) : undefined,
-          externalKey: parameters.externalKey ? String(parameters.externalKey) : undefined,
+          externalProvider: filterField("externalProvider"),
+          externalKey: filterField("externalKey"),
           aiNote: parameters.aiNote ? String(parameters.aiNote) : undefined,
         });
         return { branches: { main: [toItem(created)] } };
@@ -216,11 +265,17 @@ export const workItemNodeType: NodeTypeDefinition = {
       case "Update": {
         const id = String(parameters.id ?? "");
         if (!id) throw new Error("Work Item Update requires an Id.");
+        const status = filterField("status");
+        const priority = filterField("priority");
+        const projectId = filterField("projectId");
+        const externalProvider = filterField("externalProvider");
+        const externalKey = filterField("externalKey");
         const patch: Partial<WorkItemInput> = {};
         if (parameters.title) patch.title = String(parameters.title);
         if (parameters.description) patch.description = String(parameters.description);
-        if (parameters.status) patch.status = parameters.status as WorkItemStatus;
-        if (parameters.priority) patch.priority = parameters.priority as WorkItemPriority;
+        if (status) patch.status = status as WorkItemStatus;
+        if (priority) patch.priority = priority as WorkItemPriority;
+        if (projectId) patch.projectId = projectId;
         if (parameters.assigneeId) patch.assigneeId = String(parameters.assigneeId);
         if (parameters.labels) patch.labels = parseCommaList(parameters.labels);
         if (parameters.startDate) patch.startDate = String(parameters.startDate);
@@ -229,15 +284,15 @@ export const workItemNodeType: NodeTypeDefinition = {
         if (parameters.moduleIds) patch.moduleIds = parseCommaList(parameters.moduleIds);
         if (parameters.storyPoints !== undefined && parameters.storyPoints !== "")
           patch.storyPoints = Number(parameters.storyPoints);
-        if (parameters.externalProvider) patch.externalProvider = String(parameters.externalProvider);
-        if (parameters.externalKey) patch.externalKey = String(parameters.externalKey);
+        if (externalProvider) patch.externalProvider = externalProvider;
+        if (externalKey) patch.externalKey = externalKey;
         if (parameters.aiNote) patch.aiNote = String(parameters.aiNote);
         const updated = await workItemStore.update(id, patch);
         return { branches: { main: [toItem(updated)] } };
       }
       case "Move Status": {
         const id = String(parameters.id ?? "");
-        const status = parameters.status as WorkItemStatus;
+        const status = parameters.moveStatus as WorkItemStatus;
         if (!id || !status) throw new Error("Work Item Move Status requires an Id and a Status.");
         const updated = await workItemStore.moveStatus(id, status);
         return { branches: { main: [toItem(updated)] } };

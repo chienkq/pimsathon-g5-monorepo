@@ -156,7 +156,15 @@ export {
 
 export type { TicketStoreService, NormalizedTicket, StoredTicket, TicketFilter } from "./ticketUpsert.js";
 export type { JiraClientService, JiraIssue } from "./jira.js";
-export type { GitBranch, GitClientService, GitCommit, GitIssue, GitPullRequest, GitRepositoryInfo } from "./git.js";
+export type {
+  GitBranch,
+  GitClientService,
+  GitCommit,
+  GitIssue,
+  GitPullRequest,
+  GitRepositoryInfo,
+  LocalGitClientService,
+} from "./git.js";
 export type { GitCacheStoreService } from "./gitCacheUpsert.js";
 export type { WebhookRequestPayload } from "./webhook.js";
 export type {

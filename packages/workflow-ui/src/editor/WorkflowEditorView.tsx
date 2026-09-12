@@ -251,6 +251,7 @@ function WorkflowEditorViewInner({ workflowId, onBack, runLogsView, onRunLogsVie
           nodes={editor.nodes}
           edges={editor.edges}
           onChangeParameter={editor.updateNodeParameter}
+          onExecute={editor.runNode}
           onClose={() => setOpenNodeId(undefined)}
         />
       )}

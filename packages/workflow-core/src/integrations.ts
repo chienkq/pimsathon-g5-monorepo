@@ -4,7 +4,7 @@
  * ("surfaced on the Integrations screen (W6)"). Shared by admin-ui (renders the form) and
  * backend (validates incoming config keys, builds the real API client per provider).
  */
-export type IntegrationProviderId = "jira" | "github" | "slack" | "teams" | "outlook" | "gmail";
+export type IntegrationProviderId = "jira" | "github" | "slack" | "teams" | "outlook" | "gmail" | "local-git";
 
 export interface IntegrationFieldSpec {
   key: string;
@@ -21,7 +21,16 @@ export interface IntegrationProviderSpec {
   description: string;
   color: string;
   fields: IntegrationFieldSpec[];
+  /** "git" providers (GitHub, Local Git) render under the Git Control settings section, source
+   *  options for the work item Development tab's default. Everything else renders under the
+   *  general Integrations section. */
+  category: "git" | "general";
 }
+
+/** Which git backend the work item Development tab shows by default — set from Git Control. */
+export type GitControlDefaultSource = "github" | "local-git";
+
+export const GIT_CONTROL_PROVIDER_IDS: IntegrationProviderId[] = ["github", "local-git"];
 
 export const INTEGRATION_PROVIDERS: IntegrationProviderSpec[] = [
   {
@@ -34,6 +43,7 @@ export const INTEGRATION_PROVIDERS: IntegrationProviderSpec[] = [
       { key: "email", label: "Email", type: "text", placeholder: "you@company.com" },
       { key: "apiToken", label: "API Token", type: "password" },
     ],
+    category: "general",
   },
   {
     id: "github",
@@ -45,6 +55,7 @@ export const INTEGRATION_PROVIDERS: IntegrationProviderSpec[] = [
       { key: "owner", label: "Organization / Owner", type: "text", placeholder: "octocat" },
       { key: "repo", label: "Repository", type: "text", placeholder: "hello-world" },
     ],
+    category: "git",
   },
   {
     id: "slack",
@@ -52,6 +63,7 @@ export const INTEGRATION_PROVIDERS: IntegrationProviderSpec[] = [
     description: "Posts messages to a Slack channel from the Slack node.",
     color: "#4a154b",
     fields: [{ key: "botToken", label: "Bot User OAuth Token", type: "password", placeholder: "xoxb-..." }],
+    category: "general",
   },
   {
     id: "teams",
@@ -66,6 +78,7 @@ export const INTEGRATION_PROVIDERS: IntegrationProviderSpec[] = [
         placeholder: "https://...webhook.office.com/...",
       },
     ],
+    category: "general",
   },
   {
     id: "outlook",
@@ -78,6 +91,7 @@ export const INTEGRATION_PROVIDERS: IntegrationProviderSpec[] = [
       { key: "clientSecret", label: "Client Secret", type: "password" },
       { key: "senderUpn", label: "Sender mailbox (UPN)", type: "text", placeholder: "bot@company.com" },
     ],
+    category: "general",
   },
   {
     id: "gmail",
@@ -90,6 +104,24 @@ export const INTEGRATION_PROVIDERS: IntegrationProviderSpec[] = [
       { key: "refreshToken", label: "Refresh Token", type: "password" },
       { key: "fromEmail", label: "From Email", type: "text", placeholder: "you@gmail.com" },
     ],
+    category: "general",
+  },
+  {
+    id: "local-git",
+    displayName: "Local Git Folder",
+    description:
+      "Reads code from a local folder on the backend's machine, for testing GitHub-style code references (e.g. Work Item AI Notes) without a real GitHub connection.",
+    color: "#6e7781",
+    fields: [
+      {
+        key: "repoPath",
+        label: "Repository path",
+        type: "text",
+        placeholder: "/home/you/code/my-repo",
+        helpText: "Absolute path to a local folder (a git checkout) the backend process can read.",
+      },
+    ],
+    category: "git",
   },
 ];
 

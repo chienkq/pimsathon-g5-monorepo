@@ -1,16 +1,19 @@
-import { validateNode } from "@chienkq/workflow-core";
-import { useEffect } from "react";
+import { validateNode, type NodeExecutionData, type NodeExecutionResult } from "@chienkq/workflow-core";
+import { useEffect, useState } from "react";
 import { useNodeType } from "../../context/WorkflowRuntimeContext.js";
 import { SvgNodeIcon } from "../nodes/SvgNodeIcon.js";
 import { ParameterField } from "../panels/ParameterField.js";
 import type { WorkflowFlowEdge, WorkflowFlowNode } from "../types.js";
 import { getNodeInputData } from "./getNodeInputData.js";
+import { JsonTree } from "./JsonTree.js";
 
 export interface NodeDetailModalProps {
   node: WorkflowFlowNode;
   nodes: WorkflowFlowNode[];
   edges: WorkflowFlowEdge[];
   onChangeParameter: (nodeId: string, key: string, value: unknown) => void;
+  /** Runs this node in isolation (the "Execute" button) — omitted when the runtime doesn't support it. */
+  onExecute?: (nodeId: string, input: NodeExecutionData[]) => Promise<NodeExecutionResult | undefined>;
   onClose: () => void;
 }
 
@@ -41,25 +44,38 @@ function DataColumn({
         ) : items.length === 0 ? (
           <p className="wf-muted">{emptyHint}</p>
         ) : (
-          items.map((item, index) => (
-            <pre key={index} className="wf-json-preview wf-ndv-item">
-              {JSON.stringify(item, null, 2)}
-            </pre>
-          ))
+          <JsonTree data={items} />
         )}
       </div>
     </div>
   );
 }
 
-export function NodeDetailModal({ node, nodes, edges, onChangeParameter, onClose }: NodeDetailModalProps) {
+export function NodeDetailModal({ node, nodes, edges, onChangeParameter, onExecute, onClose }: NodeDetailModalProps) {
   const nodeType = useNodeType(node.data.nodeType);
   const issues = validateNode(nodeType, node.data.parameters);
-  const inputItems = getNodeInputData(node.id, nodes, edges).map((item) => item.json);
+  const resolveParamValue = (key: string): unknown => {
+    if (node.data.parameters[key] !== undefined) return node.data.parameters[key];
+    return nodeType.parameters.find((field) => field.key === key)?.default;
+  };
+  const inputData = getNodeInputData(node.id, nodes, edges);
+  const inputItems = inputData.map((item) => item.json);
   const outputBranches = node.data.result?.branches ?? {};
   const outputItems = Object.values(outputBranches)
     .flat()
     .map((item) => item.json);
+  const isRunning = node.data.status === "running";
+  const [executeError, setExecuteError] = useState<string | undefined>(undefined);
+
+  const handleExecute = async () => {
+    if (!onExecute) return;
+    setExecuteError(undefined);
+    try {
+      await onExecute(node.id, inputData);
+    } catch (error) {
+      setExecuteError(error instanceof Error ? error.message : String(error));
+    }
+  };
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -85,6 +101,16 @@ export function NodeDetailModal({ node, nodes, edges, onChangeParameter, onClose
               {node.data.status}
             </span>
           )}
+          {onExecute && (
+            <button
+              type="button"
+              className="wf-button wf-button--primary wf-ndv__execute"
+              onClick={() => void handleExecute()}
+              disabled={isRunning}
+            >
+              {isRunning ? "Executing…" : "Execute"}
+            </button>
+          )}
           <button type="button" className="wf-ndv__close" onClick={onClose} aria-label="Close">
             ✕
           </button>
@@ -109,14 +135,20 @@ export function NodeDetailModal({ node, nodes, edges, onChangeParameter, onClose
                 <p className="wf-muted">This node has no parameters.</p>
               ) : (
                 <div className="wf-field-list">
-                  {nodeType.parameters.map((field) => (
-                    <ParameterField
-                      key={field.key}
-                      field={field}
-                      value={node.data.parameters[field.key]}
-                      onChange={(value) => onChangeParameter(node.id, field.key, value)}
-                    />
-                  ))}
+                  {nodeType.parameters
+                    .filter(
+                      (field) =>
+                        !field.showWhen ||
+                        field.showWhen.values.includes(String(resolveParamValue(field.showWhen.key) ?? ""))
+                    )
+                    .map((field) => (
+                      <ParameterField
+                        key={field.key}
+                        field={field}
+                        value={node.data.parameters[field.key]}
+                        onChange={(value) => onChangeParameter(node.id, field.key, value)}
+                      />
+                    ))}
                 </div>
               )}
             </div>
@@ -125,8 +157,8 @@ export function NodeDetailModal({ node, nodes, edges, onChangeParameter, onClose
           <DataColumn
             title="OUTPUT"
             items={outputItems}
-            emptyHint="No output yet. Execute the workflow to see data here."
-            error={node.data.result?.status === "error" ? node.data.result.error : undefined}
+            emptyHint="No output yet. Execute this node or the workflow to see data here."
+            error={executeError ?? (node.data.result?.status === "error" ? node.data.result.error : undefined)}
           />
         </div>
       </div>

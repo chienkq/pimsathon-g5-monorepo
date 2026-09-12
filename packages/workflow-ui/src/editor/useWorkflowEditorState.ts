@@ -1,4 +1,5 @@
 import type {
+  NodeExecutionData,
   NodeExecutionResult,
   WorkflowConnection,
   WorkflowDefinition,
@@ -248,6 +249,24 @@ export function useWorkflowEditorState(workflowId: string) {
     setLastRunAt(result.finishedAt);
   }, [buildWorkflowDefinition, setNodes, runtime]);
 
+  const runNode = useCallback(
+    async (nodeId: string, input: NodeExecutionData[]) => {
+      if (!runtime.runNode) throw new Error("This runtime does not support executing a single node.");
+      const node = nodes.find((n) => n.id === nodeId);
+      if (!node) return;
+
+      setNodes((current) =>
+        current.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, status: "running" } } : n))
+      );
+      const result = await runtime.runNode(node.data.nodeType, node.data.parameters, input);
+      setNodes((current) =>
+        current.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, status: result.status, result } } : n))
+      );
+      return result;
+    },
+    [nodes, runtime, setNodes]
+  );
+
   return {
     nodes,
     edges,
@@ -273,5 +292,6 @@ export function useWorkflowEditorState(workflowId: string) {
     lastRunAt,
     save,
     run,
+    runNode,
   };
 }

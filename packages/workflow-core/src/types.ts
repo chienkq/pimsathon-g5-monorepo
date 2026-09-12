@@ -3,11 +3,48 @@ export interface NodeExecutionData {
   json: Record<string, unknown>;
 }
 
-export type ParameterFieldType = "string" | "number" | "boolean" | "select" | "json" | "code";
+export type ParameterFieldType = "string" | "number" | "boolean" | "select" | "json" | "code" | "filter";
 
 export interface ParameterFieldOption {
   label: string;
   value: string;
+}
+
+/**
+ * n8n-style filter/condition builder value — matches the real shape of n8n's `FilterValue`
+ * (packages/workflow/src/interfaces.ts), pared down to what this app's nodes need: no
+ * exists/empty/regex operators, no nested left-value expressions (the left side is always one of
+ * the node's own field names, picked from a fixed list via `ParameterField.filterFields`).
+ */
+export type FilterOperatorType = "string" | "number";
+export interface FilterOperatorValue {
+  type: FilterOperatorType;
+  operation: string;
+}
+export interface FilterConditionValue {
+  id: string;
+  leftField: string;
+  operator: FilterOperatorValue;
+  rightValue: unknown;
+}
+export type FilterCombinator = "and" | "or";
+export interface FilterValue {
+  combinator: FilterCombinator;
+  conditions: FilterConditionValue[];
+}
+export interface FilterFieldOption {
+  label: string;
+  value: string;
+  type: FilterOperatorType;
+  /** Known values to offer as autosuggest in the condition's value input (e.g. a status/priority's fixed set) — doesn't restrict input, just suggests. */
+  valueOptions?: ParameterFieldOption[];
+  /**
+   * Names a runtime-fetched source of autosuggest values instead of a static `valueOptions` list —
+   * e.g. `"projects"` for the live project list. Resolved client-side by whatever consumes this
+   * field (see workflow-ui's `useProjects()`); kept as a plain string (not a function) since
+   * `ParameterField` is served as JSON over `/api/node-types`.
+   */
+  dynamicValueOptions?: "projects";
 }
 
 export interface ParameterField {
@@ -18,8 +55,12 @@ export interface ParameterField {
   placeholder?: string;
   helpText?: string;
   options?: ParameterFieldOption[];
+  /** Only used when `type === "filter"` — the field names the user can pick as a condition's left side. */
+  filterFields?: FilterFieldOption[];
   /** Config-time validation: node shows an "issues" warning while this field is empty. */
   required?: boolean;
+  /** Only rendered/validated when another field on the same node currently holds one of these values (e.g. show "Title" only when `action` is "Create" or "Update"). */
+  showWhen?: { key: string; values: string[] };
 }
 
 /** n8n-style node-creator categories (matches n8n's real grouping, not its literal category labels). */

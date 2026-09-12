@@ -1,11 +1,12 @@
 import {
+  executeSingleNode,
   executeWorkflow,
   type ExecuteWorkflowOptions,
   type NodeExecutionResult,
   type WorkflowExecutionResult,
 } from "../engine/executeWorkflow.js";
 import { listNodeTypeMetas } from "../nodeTypes/index.js";
-import type { NodeTypeMeta, WorkflowDefinition } from "../types.js";
+import type { NodeExecutionData, NodeTypeMeta, WorkflowDefinition } from "../types.js";
 
 /** One row of a workflow's run history — the Run Logs panel's list view. */
 export interface WorkflowRunSummary {
@@ -22,6 +23,13 @@ export interface WorkflowRunDetail extends WorkflowRunSummary {
   nodeResults: Record<string, NodeExecutionResult>;
 }
 
+/** Minimal project shape for populating a "Project Id" field's autosuggest — not the full admin-ui `Project` record. */
+export interface WorkflowRuntimeProjectSummary {
+  id: string;
+  name: string;
+  code: string;
+}
+
 /**
  * Where the node type list comes from and where a workflow actually runs. Mirrors
  * `WorkflowRepository`'s swap-in pattern: `LocalWorkflowRuntime` (the default, no real integrations)
@@ -36,6 +44,14 @@ export interface WorkflowRuntime {
   /** Optional — the Run Logs panel only renders its trigger button when a runtime implements this. */
   listRuns?(workflowId: string): Promise<WorkflowRunSummary[]>;
   getRun?(workflowId: string, runId: string): Promise<WorkflowRunDetail | undefined>;
+  /** Optional — the NDV "Execute" button only renders when a runtime implements this. */
+  runNode?(
+    nodeType: string,
+    parameters: Record<string, unknown>,
+    input: NodeExecutionData[]
+  ): Promise<NodeExecutionResult>;
+  /** Optional — powers a "Project Id" field's autosuggest (see `FilterFieldOption.dynamicValueOptions`); absent/empty under `LocalWorkflowRuntime`, which has no real project data. */
+  listProjects?(): Promise<WorkflowRuntimeProjectSummary[]>;
 }
 
 /**
@@ -86,5 +102,13 @@ export class LocalWorkflowRuntime implements WorkflowRuntime {
 
   async getRun(workflowId: string, runId: string): Promise<WorkflowRunDetail | undefined> {
     return this.runsByWorkflow.get(workflowId)?.find((run) => run.id === runId);
+  }
+
+  async runNode(
+    nodeType: string,
+    parameters: Record<string, unknown>,
+    input: NodeExecutionData[]
+  ): Promise<NodeExecutionResult> {
+    return executeSingleNode(nodeType, parameters, input);
   }
 }

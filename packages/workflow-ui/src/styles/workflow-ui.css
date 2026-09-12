@@ -1,18 +1,15 @@
 /*
- * n8n-clone styling for the workflow editor. Tokens below mirror n8n's actual design system
- * (packages/frontend/@n8n/design-system/src/css/_tokens.scss and _primitives.scss) as closely as
- * a hand-ported subset allows — override the `--wf-*` custom properties to retheme.
+ * Workflow editor styling, unified with the admin-ui shell's design tokens (see
+ * apps/admin-ui/src/App.css) — same primary blue, font stack and radius scale as the rest of the
+ * app. Override the `--wf-*` custom properties to retheme.
  */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
-
 .wf-app {
-  /* n8n brand orange: oklch(69.96% 0.202 44.44) */
-  --wf-color-primary: #ff6d5a;
-  --wf-color-primary-hover: #f0533d;
+  /* matches admin-ui .button.primary (App.css) */
+  --wf-color-primary: #4f70df;
+  --wf-color-primary-hover: #405fca;
   --wf-color-primary-contrast: #ffffff;
-  --wf-color-primary-transparent: rgb(255 109 90 / 10%);
+  --wf-color-primary-transparent: rgb(79 112 223 / 10%);
 
-  /* n8n neutral-125 (canvas) / neutral-white (surfaces) / neutral-900 (text) */
   --wf-color-bg: #ffffff;
   --wf-color-canvas: #f5f5f6;
   --wf-color-surface: #fbfbfc;
@@ -24,26 +21,24 @@
   --wf-color-error: #e0393e;
   --wf-color-warning: #e8a838;
 
-  /* n8n radius scale: sm 2px, base 4px, lg 8px, xl 12px */
-  --wf-radius-xs: 4px;
-  --wf-radius-sm: 6px;
-  --wf-radius: 8px;
-  --wf-radius-xl: 8px;
+  /* matches admin-ui radius scale: inputs/buttons 7px, cards 11px, dialogs 14px */
+  --wf-radius-xs: 7px;
+  --wf-radius-sm: 7px;
+  --wf-radius: 11px;
+  --wf-radius-xl: 14px;
 
-  /* n8n canvas node geometry (nodeViewUtils.ts DEFAULT_NODE_SIZE=[96,96], trigger radius=36) */
   --wf-node-size: 50px;
   --wf-node-icon-size: 24px;
   --wf-trigger-radius: 36px;
 
-  height: 100%;
+  height: 90%;
   min-height: 480px;
   display: flex;
   flex-direction: column;
   font-family:
-    "Inter",
+    "Segoe UI",
     -apple-system,
     BlinkMacSystemFont,
-    "Segoe UI",
     Roboto,
     sans-serif;
   color: var(--wf-color-text);
@@ -75,7 +70,7 @@
 .wf-app select:focus {
   outline: none;
   border-color: var(--wf-color-primary);
-  box-shadow: 0 0 0 3px rgb(109 91 246 / 15%);
+  box-shadow: 0 0 0 3px rgb(79 112 223 / 15%);
 }
 
 .wf-textarea {
@@ -118,12 +113,18 @@
   background: var(--wf-color-primary);
   border-color: var(--wf-color-primary);
   color: var(--wf-color-primary-contrast);
-  box-shadow: 0 1px 2px rgb(109 91 246 / 30%);
+  box-shadow: 0 1px 2px rgb(79 112 223 / 30%);
 }
 
 .wf-button--primary:hover:not(:disabled) {
   background: var(--wf-color-primary-hover);
   border-color: var(--wf-color-primary-hover);
+}
+
+.wf-button--ghost {
+  background: transparent;
+  font-size: 0.78rem;
+  padding: 4px 10px;
 }
 
 .wf-button--danger {
@@ -449,7 +450,7 @@
 
 .wf-empty-state__box:hover {
   border-color: var(--wf-color-primary);
-  box-shadow: 0 0 0 4px rgb(109 91 246 / 12%);
+  box-shadow: 0 0 0 4px rgb(79 112 223 / 12%);
 }
 
 .wf-empty-state__box--ai {
@@ -501,19 +502,19 @@
   padding: 12px 28px;
   border-radius: 999px;
   border: none;
-  background: #ff6d5a;
+  background: var(--wf-color-primary);
   color: #fff;
   font-weight: 700;
   font-size: 0.95rem;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgb(255 109 90 / 40%);
+  box-shadow: 0 4px 14px rgb(79 112 223 / 40%);
   transition:
     transform 80ms ease,
     background 120ms ease;
 }
 
 .wf-execute-button:hover:not(:disabled) {
-  background: #f6543e;
+  background: var(--wf-color-primary-hover);
 }
 
 .wf-execute-button:active:not(:disabled) {
@@ -741,6 +742,11 @@
   font-size: 0.82rem;
 }
 
+.wf-ndv__execute {
+  margin-left: auto;
+  flex: none;
+}
+
 .wf-ndv__close {
   margin-left: auto;
   width: 32px;
@@ -770,6 +776,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
   border-right: 1px solid var(--wf-color-border);
 }
 
@@ -804,10 +811,6 @@
   flex: 1;
   overflow-y: auto;
   padding: 16px 20px;
-}
-
-.wf-ndv-item {
-  margin-bottom: 10px;
 }
 
 .wf-ndv-issues {
@@ -969,12 +972,118 @@
 }
 
 .wf-field__label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   font-weight: 600;
+}
+
+.wf-field__expr-toggle {
+  border: 1px solid var(--wf-color-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--wf-color-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-style: italic;
+  line-height: 1;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+
+.wf-field__expr-toggle:hover {
+  border-color: var(--wf-color-primary, #eb5424);
+  color: var(--wf-color-primary, #eb5424);
+}
+
+.wf-field__expr-toggle--active {
+  background: var(--wf-color-primary, #eb5424);
+  border-color: var(--wf-color-primary, #eb5424);
+  color: #fff;
+}
+
+.wf-input--expression {
+  font-family: var(--wf-font-mono, monospace);
 }
 
 .wf-field__help {
   color: var(--wf-color-muted);
   font-size: 0.75rem;
+}
+
+.wf-field__help code {
+  background: var(--wf-color-surface-alt, rgba(125, 125, 125, 0.15));
+  border-radius: 3px;
+  padding: 0 4px;
+}
+
+.wf-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wf-filter__empty {
+  margin: 0;
+}
+
+.wf-filter__row-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wf-filter__combinator {
+  align-self: flex-start;
+  border: 1px solid var(--wf-color-border);
+  border-radius: 4px;
+  background: var(--wf-color-surface-alt, transparent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 6px;
+}
+
+.wf-filter-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.4fr auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.wf-filter-row__value {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wf-filter-row__value .wf-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.wf-filter-row__remove {
+  border: 1px solid var(--wf-color-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--wf-color-muted);
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px 7px;
+}
+
+.wf-filter-row__remove:hover:not(:disabled) {
+  border-color: #d33;
+  color: #d33;
+}
+
+.wf-filter-row__remove:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.wf-filter__add {
+  align-self: flex-start;
 }
 
 .wf-run-result {
@@ -1001,14 +1110,81 @@
   font-size: 0.85rem;
 }
 
-.wf-json-preview {
+.wf-json-tree {
   background: var(--wf-color-canvas);
   border: 1px solid var(--wf-color-border);
   border-radius: var(--wf-radius-sm);
-  padding: 10px;
-  font-size: 0.75rem;
-  max-height: 240px;
-  overflow: auto;
+  padding: 10px 12px;
+  font-family: var(--wf-font-mono, ui-monospace, "SF Mono", monospace);
+  font-size: 0.78rem;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+
+.wf-json__row {
+  white-space: nowrap;
+}
+
+.wf-json__children {
+  margin-left: 16px;
+  border-left: 1px dotted var(--wf-color-border);
+  padding-left: 10px;
+}
+
+.wf-json__toggle {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.wf-json__caret {
+  display: inline-block;
+  font-size: 0.65rem;
+  color: var(--wf-color-muted);
+  transition: transform 100ms ease;
+}
+
+.wf-json__caret--collapsed {
+  transform: rotate(-90deg);
+}
+
+.wf-json__key {
+  color: var(--wf-color-text);
+  font-weight: 600;
+}
+
+.wf-json__bracket {
+  color: var(--wf-color-muted);
+}
+
+.wf-json__count {
+  color: var(--wf-color-muted);
+  font-style: italic;
+  margin: 0 4px;
+}
+
+.wf-json__string {
+  color: #1a7f37;
+}
+
+.wf-json__number {
+  color: #0550ae;
+}
+
+.wf-json__boolean {
+  color: #8250df;
+}
+
+.wf-json__null {
+  color: var(--wf-color-muted);
+  font-style: italic;
 }
 
 /* ---- Canvas node (n8n CanvasNodeDefault clone) ---- */
